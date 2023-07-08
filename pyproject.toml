@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "negobot"
+version = "0.1.0"
+description = "Boostcamp AI tech NLP-03 final project. Chatbot specialized for bargain."
+authors = ["KimuGenie <baby11686@naver.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.8.5"
+transformers = "^4.30.2"
+torch = "1.7.1"
+flatten-dict = "^0.4.2"
+gym = "^0.26.2"
+accelerate = "^0.20.3"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.24.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
