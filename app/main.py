@@ -8,7 +8,7 @@ from collections import OrderedDict
 import pickle, os 
 from pathlib import Path
 from models import User, Product, Dialogue
-from app.load_model import load_gpt
+from load_model import load_gpt
 path = Path(__file__)
 
 # -----------------------
