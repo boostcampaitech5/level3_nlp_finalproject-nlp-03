@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <title>네고봇</title>
+</head>
+<body>
+  <h1 class="Title">네고봇</h1>
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="/login">Login</a></li>
+    <li><a href="/signup">Sign Up</a></li>
+    <li><a href="/ranking">Ranking</a></li>
+  </ul>
+  {% block nav %}{% endblock %}
+  
+  {% block subtitle %}{% endblock %}
+  
+  {% block content %}{% endblock %}
+</body>
+</html>

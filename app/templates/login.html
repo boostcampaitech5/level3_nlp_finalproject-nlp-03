@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block subtitle %}
+<h2 class="List">로그인</h2>
+{% endblock %} 
+
+{% block content %}
+  <form method="POST" action="/login">
+    <div>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username">
+    </div>
+    <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password">
+    </div>
+    <div>
+        <input type="submit" value="Log In">
+    </div>
+  </form>
+{% endblock %}
+

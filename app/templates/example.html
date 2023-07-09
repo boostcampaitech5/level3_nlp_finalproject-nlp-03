@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block subtitle %}
+<h2 class="List">판매 상품 목록</h2>
+{% endblock %} 
+
+{% block content %}
+
+  {% for product in products %}
+  <div class="product">
+    <p>{{ product}}</p>
+  </div>
+  {% endfor %}
+
+  {% for chat in chats %}
+  <div class="chat">
+    <p>{{ chat}}</p>
+  </div>
+  {% endfor %}
+
+{% endblock %}  
+

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block subtitle %}
+<h2 class="List">유저랭킹</h2>
+{% endblock %} 
+
+{% block content %}
+
+  {% for user in users %}
+  <div class="user">
+    <h3> {{loop.index}}위: {{user.username}} </h3>
+    <p>money:{{ user.money}}</p>
+  </div>
+  {% endfor %}
+
+{% endblock %}  
+

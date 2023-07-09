@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block subtitle %}
+<h2 class="List">판매 상품 목록</h2>
+{% endblock %} 
+
+{% block content %}
+
+  {% for product in products %}
+  <div class="product">
+    <h3>  <a href="{{ url_for('get_chatting', product_id=product.id) }}">{{ product.title }}</a> </h3>
+    <p>{{ product.description }}</p>
+    <p>가격: ${{ product.price }}</p>
+    <img src="/static/images/{{ product.image }}" alt="{{ product.title }}" width="200", height="200">
+  </div>
+  {% endfor %}
+
+{% endblock %}  
+
