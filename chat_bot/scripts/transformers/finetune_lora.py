@@ -1,47 +1,33 @@
-from typing import Tuple
 from transformers import (
     AutoModelForCausalLM,
-    PreTrainedTokenizer,
     AutoTokenizer,
-    LlamaTokenizerFast,
-    LlamaForCausalLM,
-    # PretrainedTokenizer,
     Trainer,
     TrainingArguments,
-    default_data_collator,
-    DataCollatorForLanguageModeling,
     BitsAndBytesConfig,
+    default_data_collator,
 )
 from peft import (
     LoraConfig,
-    LoraModel,
-    get_peft_config,
     get_peft_model,
-    TaskType,
-    PeftConfig,
-    PeftModelForCausalLM,
+    prepare_model_for_int8_training,
 )
 from torch.utils.data import Dataset
 import argparse
-from neural_chat.gpt2 import format_event
-from neural_chat.craigslist import Craigslist
-import os
-# from huggingface_hub import interpreter_login
-
-######################
-# CRAIGSLIST DATASET #
-######################
+import json
 
 
-class DialogDataset(Dataset):
-    def __init__(
-        self, cg: Craigslist, tokenizer: PreTrainedTokenizer, block_size: int = 256
-    ):
-        # get dialog
-        data = []
-        for scene in cg:
-            data.append(format_event(scene.events[-1]))
+# simple dataset for end-to-end negobot
+class SimpleDialogDataset(Dataset):
+    """
+    강화학습 없이 end-to-end 챗봇을 훈련하기 위한 데이터셋입니다.
+    상품 가격을 별도의 토큰으로 변환하지 않고 그대로 학습합니다.
+    """
 
+    def __init__(self, fp: str, tokenizer: AutoTokenizer, block_size: int = 256):
+        with open(fp, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        data = [self.dialog_formatter(d, tokenizer.sep_token) for d in data]
         data = tokenizer.eos_token.join(data)
         self.tokens = tokenizer.encode(data)
         self.tokenizer = tokenizer
@@ -52,110 +38,129 @@ class DialogDataset(Dataset):
 
     def __getitem__(self, i):
         tokens = self.tokens[i * self.block_size :][: self.block_size]
-        data = self.tokenizer.prepare_for_model(tokens, return_tensors="pt")
+        data = self.tokenizer.prepare_for_model(
+            tokens, return_tensors="pt", return_token_type_ids=False
+        )
         data["labels"] = data["input_ids"].clone()
         return data
 
+    def dialog_formatter(self, scence: dict, sep_token: str) -> str:
+        title = f"제목: {scence['scenario']['kbs'][0]['item']['Title']}"
+        desc = "\n".join(scence["scenario"]["kbs"][0]["item"]["Description"])
+        desc = f"상품 설명: {desc}"
+        price = f"가격: {scence['scenario']['kbs'][0]['item']['Price']}"
+        chats = self.chat_formatter(scence["events"], sep_token)
 
-def make_craigslist_dataset(
-    tokenizer: PreTrainedTokenizer,
-    train_fp: str,
-    val_fp: str,
-) -> Tuple[DialogDataset, DialogDataset]:
-    # make data
-    cg_train = Craigslist(train_fp)
-    cg_val = Craigslist(val_fp)
+        formatted_dialogue = sep_token.join([title, desc, price, chats])
+        return formatted_dialogue
 
-    # train and test
-    dd = lambda d: DialogDataset(d, tokenizer=tokenizer)
-    return dd(cg_train), dd(cg_val)
+    def chat_formatter(self, events: dict, sep_token: str) -> str:
+        chats = []
+        for event in events:
+            if event["action"] == "message":
+                chats.append(event["data"])
+            elif event["action"] == "offer":
+                chats.append(f"offer {event['data']['price']}")
+            elif event["action"] == "accept":
+                chats.append("accept")
+            elif event["action"] == "reject":
+                chats.append("reject")
+            elif event["action"] == "quit":
+                chats.append("quit")
+            else:
+                raise NotImplementedError
+        agent_mapping = ["구매자", "판매자"]
+        chats = [
+            f"{agent_mapping[events[i]['agent']]}: {chat}"
+            for i, chat in enumerate(chats)
+        ]
 
+        return sep_token.join(chats) + sep_token
 
-class LoraTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        inputs.pop("token_type_ids")
-        return super().compute_loss(model, inputs, return_outputs)
 
 ###############
 # MAIN SCRIPT #
 ###############
 def train(args):
     # make tokenizer
-    token = AutoTokenizer.from_pretrained(args.model_name)
-    token.add_tokens(["$PRICE", "$PARTNER_PRICE", "<sep>"])
-    # token.add_special_token({"mask_token":"[MASK]"})
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer.sep_token = "<|sep|>"
+    tokenizer.pad_token = tokenizer.eos_token
 
     # make dataset
-    train_dataset, val_dataset = make_craigslist_dataset(
-        tokenizer=token, train_fp=args.train_fp, val_fp=args.val_fp
+    train_dataset = SimpleDialogDataset(
+        args.train_fp, tokenizer=tokenizer, block_size=256
     )
 
-    # initialize model
-    model = AutoModelForCausalLM.from_pretrained(args.model_name)
-    model.resize_token_embeddings(len(token))
-    
+    # QLoRA configs
+    bnb_config = BitsAndBytesConfig(load_in_8bit=True)
+
     lora_config = LoraConfig(
         r=args.lora_r,
         target_modules=["query_key_value"],
         lora_alpha=args.lora_alpha,
         lora_dropout=args.lora_dropout,
-        task_type=TaskType.CAUSAL_LM,
+        task_type="CAUSAL_LM",
         inference_mode=False,
         bias="all",
     )
-    # PeftModelForCausalLM.from_pretrained(model, )
-    model:PeftModelForCausalLM = get_peft_model(model, lora_config)
-    model.print_trainable_parameters()
+
+    # initialize model
+    print("load model...")
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model_name, quantization_config=bnb_config
+    )
+
+    print("get peft model...")
+    model = prepare_model_for_int8_training(model)
+    model = get_peft_model(model, lora_config)
+    model.config.use_cache = False
     print(model)
+    model.print_trainable_parameters()
 
     # finetune
     train_args = TrainingArguments(
         output_dir=args.output_dir,
         per_device_train_batch_size=args.batch_size,
-        per_device_eval_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
-        eval_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
-        # fp16=args.fp16,
-        no_cuda=False,
         num_train_epochs=args.epoch,
-        # max_steps=20,
-        save_strategy="epoch",
-        # save_steps=500,
-        evaluation_strategy="epoch",
-        # eval_steps=500,
-        save_total_limit=1,
-        warmup_steps=100,
+        max_steps=args.max_steps,
+        save_steps=10,
+        warmup_steps=5,
+        logging_steps=5,
         dataloader_drop_last=True,
-        load_best_model_at_end=True,
-        report_to="wandb",
-        push_to_hub=True,
+        # report_to="wandb",
+        # push_to_hub=True,
     )
-    trainer = LoraTrainer(
+
+    trainer = Trainer(
         model,
         train_args,
         train_dataset=train_dataset,
-        eval_dataset=val_dataset,
-        tokenizer=token,
+        tokenizer=tokenizer,
         data_collator=default_data_collator,
     )
 
     trainer.train()
 
-    model.push_to_hub(repo_id="tjddn0402/alpaca_lora")
+    # model.push_to_hub(repo_id="tjddn0402/alpaca_lora")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train-fp", default="/opt/ml/chai-naacl-2022/data/fixed_final_translated_train.json")
-    parser.add_argument("--val-fp", default="/opt/ml/chai-naacl-2022/data/fixed_final_translated_dev.json")
+    parser.add_argument(
+        "--train-fp",
+        default="/opt/ml/level3_nlp_finalproject-nlp-03/data/cherrypick_train.json",
+    )
 
     parser.add_argument("--model-name", default="EleutherAI/polyglot-ko-5.8b")
-    parser.add_argument("--fp16", action="store_true")
-    parser.add_argument("--epoch", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=1)
-    parser.add_argument("--grad-accum", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=0.00001)
-    parser.add_argument("--output-dir", default="./alpaca_lora")
+    parser.add_argument("--epoch", type=int, default=3)
+    parser.add_argument("--max-steps", type=int, default=200)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--grad-accum", type=int, default=2)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--output-dir", default="./chat_bot/logs/polyglot-5.8b")
 
     parser.add_argument("--lora-r", type=int, default=8)
     parser.add_argument("--lora-alpha", type=int, default=32)
