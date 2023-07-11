@@ -1,35 +1,46 @@
-from pydantic import BaseModel, Field
-from uuid import uuid4
-from typing import List, Union, Optional, Dict, Any, Type
-from datetime import datetime 
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric  
+from sqlalchemy.orm import relationship
 
-class User(BaseModel):
-    id: str = Field(default_factory=str(uuid4())[:8])
-    username : str 
-    password : str
-    money : int = Field(default_factory=100)
-    dialogue_id : List[str] = Field(default_factory=list)
-    # dialogue : List[Type['Dialogue']] = Field(default_factory=list)
+from database import Base 
 
-    # def add_dialogue(self, dialogue:Type['Dialogue']):
-    #     # 검사?
-    #     if False:
-    #         return self
-        
-    #     self.dialogue.append(dialogue)
-    #     return self
+# db init
+# $ alembic init migrations
+# models.py 변경 후 
+# $ alembic revision --autogenerate
+# $ alembic upgrade head
+
+class Product(Base):
+    __tablename__ ="product"
+    # primary key = 고유값, 중복불가능
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    image = Column(String, default='no_image.jpeg')
+    price = Column(Numeric(precision=3, scale=2), default=50)
+    created_at = Column(DateTime, nullable=False)
+
+
+class User(Base):
+    __tablename__ = "user"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String, nullable=False, unique=True)
+    password = Column(Integer, nullable=False)
+    money = Column(Numeric(precision=3, scale=2), default=100)
+    created_at = Column(DateTime, nullable=False)
+
+class Chat(Base):
+    __tablename__ = "chat"
+
+    id = Column(Integer, primary_key=True)
     
-class Product(BaseModel):
-    id: str = Field(default_factory=str(uuid4())[:8])
-    image:Any = 'no_image.jpeg'
-    title: str 
-    description: str 
-    price: float
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False)
 
-class Dialogue(BaseModel):
-    id: str = Field(default_factory=str(uuid4())[:8])
-    user: User
-    product: Product
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    chats: List[Dict]
+    # "User":참조할 모델명, backref:역참조 설정
+    user_id = Column(Integer, ForeignKey("user.id"))
+    user = relationship("User", backref="chats")
+
+    product_id = Column(Integer, ForeignKey("product.id"))
+    product = relationship("Product", backref="chats")
+    
