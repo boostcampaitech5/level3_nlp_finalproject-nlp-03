@@ -10,7 +10,7 @@
   <div class="product">
     <h3>  <a href="{{ url_for('get_chatting', product_id=product.id) }}">{{ product.title }}</a> </h3>
     <p>{{ product.description }}</p>
-    <p>가격: ${{ product.price }}</p>
+    <p>가격:{{ product.price }}만원</p>
     <img src="/static/images/{{ product.image }}" alt="{{ product.title }}" width="200", height="200">
   </div>
   {% endfor %}

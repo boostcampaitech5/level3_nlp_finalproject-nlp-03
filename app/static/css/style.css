@@ -35,3 +35,8 @@
 .chats p {
     color: navy;
   }
+
+.error p {
+  color: red;
+  font-size:small;
+}

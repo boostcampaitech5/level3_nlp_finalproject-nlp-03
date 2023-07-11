@@ -4,15 +4,25 @@
 <h2 class="List">대화</h2>
 {% endblock %}  
 
+
+
 {% block content %}
+<div class="chats">
+  <h3>title:{{ product.title }}</h3>
+  <p>desc:{{ product.description }}</p>
+  <p>price:{{ product.price }}</p>
+</div>
+
+{% if request.method=="GET" %}
+<h2>채팅을 시작해보세요!</h2>
+{% elif request.method=="POST" %}
 
   {% for chat in chats %}
   <div class="chats">
-    <h3>agent:{{ chat.agent }}</h3>
-    <p>{{ chat.text }}</p>
+    <p>{{ chat }}</p>
   </div>
   {% endfor %}
-
+{% endif %}
   <form method="POST" action="{{ url_for('get_chatting', product_id=product.id) }}">
     <div>
         <label for="text">input text:</label>
@@ -23,6 +33,5 @@
         <p>나가려면 "끝" 이라고 입력</p>
     </div>
   </form>
-
 {% endblock %}
 

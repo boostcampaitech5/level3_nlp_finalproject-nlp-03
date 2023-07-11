@@ -17,6 +17,7 @@
     <div>
         <input type="submit" value="Log In">
     </div>
+    {% for message in messages %}<p class="error">{{message}}</p>{% endfor %}
   </form>
 {% endblock %}
 
