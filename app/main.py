@@ -86,7 +86,7 @@ async def login(request:Request, db:Session=Depends(get_db)):
         # pass
     if isinstance(user, list):
         user = user[0]
-    if user.password != password:
+    if str(user.password) != str(password):
         return templates.TemplateResponse("login.html", {"request": request, "messages":['비밀번호가 틀렸습니다.']})# 비밀번호 오류
     return RedirectResponse(url="/", status_code=303)
 
