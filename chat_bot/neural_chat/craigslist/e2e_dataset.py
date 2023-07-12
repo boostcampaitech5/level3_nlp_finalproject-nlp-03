@@ -57,6 +57,8 @@ class VicunaDialogDataset(Dataset):
     """Vicuna의 학습 방법을 따라서 챗봇의 발화를 제외한 텍스트는 masking하는 데이터셋입니다."""
 
     def __init__(self, fp: str, tokenizer: PreTrainedTokenizerFast):
+        self.data = []
+
         with open(fp, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
         conv = get_default_conv_template()
@@ -77,62 +79,47 @@ class VicunaDialogDataset(Dataset):
                 conv.append_message(role=roles[ev["role"]], message=ev["message"])
             conversations.append(conv.get_prompt())
 
-        input_ids = tokenizer(
-            conversations,
-            return_tensors="pt",
-            max_length=tokenizer.model_max_length,
-            padding="max_length",
-            truncation=True,
-        ).input_ids
-        targets = input_ids.clone()
-
         # target을 masking해서 챗봇의 발화에서만 loss를 계산합니다.
         sep = conv.sep + conv.roles[1] + ": "
-        for conversation, target in zip(conversations, targets):
-            total_len = int(target.ne(tokenizer.pad_token_id).sum())
-
+        for conversation in conversations:
+            input_ids = []
+            target = []
             turns = conversation.split(conv.sep2)
-            cur_len = 0
             for turn in turns:
                 if turn == "":
                     break
-                turn_len = len(tokenizer(turn).input_ids)
 
                 parts = turn.split(sep)
                 if len(parts) != 2:
                     break
+
                 parts[0] += sep
-                instruction_len = len(tokenizer(parts[0]).input_ids)
+                parts[1] += conv.sep2
 
-                # Ignore the user instructions
-                target[cur_len : cur_len + instruction_len] = IGNORE_TOKEN_ID
-                cur_len += turn_len
+                parts[0] = tokenizer.encode(parts[0])
+                parts[1] = tokenizer.encode(parts[1])
 
-            target[cur_len:] = IGNORE_TOKEN_ID
+                input_ids += parts[0]
+                input_ids += parts[1]
+                target += [IGNORE_TOKEN_ID] * len(parts[0])
+                target += parts[1]
 
-            if cur_len < tokenizer.model_max_length:
-                if cur_len != total_len:
-                    target[:] = IGNORE_TOKEN_ID
-                    print(
-                        f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
-                        f" (ignored)"
-                    )
-
-        self.data = {
-            "input_ids": input_ids,
-            "labels": targets,
-            "attention_mask": input_ids.ne(tokenizer.pad_token_id),
-        }
+            target += [IGNORE_TOKEN_ID] * (tokenizer.model_max_length - len(target))
+            tokens = tokenizer.prepare_for_model(
+                input_ids,
+                return_tensors="pt",
+                padding="max_length",
+                truncation=True,
+                return_token_type_ids=False,
+            )
+            tokens["labels"] = torch.tensor(target)
+            self.data.append(tokens)
 
     def __len__(self):
-        return len(self.data["input_ids"])
+        return len(self.data)
 
-    def __getitem__(self, index) -> Dict[str, torch.Tensor]:
-        return dict(
-            input_ids=self.data["input_ids"][index],
-            labels=self.data["labels"][index],
-            attention_mask=self.data["attention_mask"][index],
-        )
+    def __getitem__(self, index):
+        return self.data[index]
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from typing import List, Dict
 def get_default_conv_template():
     """End to End 모델을 위한 기본 탬플릿입니다."""
     return Conversation(
-        system="중고거래 판매자와 구매자의 대화입니다." "판매자는 구매자의 질문에 성실히 답변하고, 판매 가격을 최대화합니다.",
+        system="중고거래 판매자와 구매자의 대화입니다. 판매자는 구매자의 질문에 성실히 답변하고, 판매 가격을 최대화합니다.",
         roles=["구매자", "판매자"],
         scenario={},
         messages=[],

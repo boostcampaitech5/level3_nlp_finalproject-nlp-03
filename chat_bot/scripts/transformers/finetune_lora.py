@@ -28,7 +28,7 @@ import argparse
 def train(args):
     # make tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token = "<|sep|>"
     tokenizer.model_max_length = args.max_length
 
     # make dataset
@@ -80,6 +80,7 @@ def train(args):
         logging_steps=5,
         dataloader_drop_last=True,
         report_to="wandb",
+        run_name=args.run_name,
         # push_to_hub=True,
     )
 
@@ -114,6 +115,8 @@ if __name__ == "__main__":
     parser.add_argument("--lora-r", type=int, default=8)
     parser.add_argument("--lora-alpha", type=int, default=32)
     parser.add_argument("--lora-dropout", type=float, default=0.05)
+
+    parser.add_argument("--run-name", default="QLoRA")
     args = parser.parse_args()
 
     train(args)
