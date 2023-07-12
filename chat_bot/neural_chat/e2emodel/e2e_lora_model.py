@@ -2,6 +2,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModelForCausalLM, PeftConfig, prepare_model_for_int8_training
 from typing import Union
+from .preprocess import format_scenario, format_chat
 
 
 class E2ELoRA(torch.nn.Module):
@@ -27,9 +28,13 @@ class E2ELoRA(torch.nn.Module):
 
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
 
-    def generate(self, input_text: str) -> str:
+    def generate(self, input_dict: dict) -> str:
+        scenario = format_scenario(input_dict, self.tokenizer.sep_token)
+        chats = format_chat(input_dict, self.tokenizer.sep_token)
         tokens = self.tokenizer(
-            input_text, return_tensors="pt", return_token_type_ids=False
+            scenario + chats + "판매자: ",
+            return_tensors="pt",
+            return_token_type_ids=False,
         ).to(self.device)
 
         gen_tokens = self.model.generate(
