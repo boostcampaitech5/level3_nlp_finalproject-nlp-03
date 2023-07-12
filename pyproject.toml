@@ -16,6 +16,8 @@ alembic = "^1.11.1"
 pymongo = "^4.4.0"
 motor = "^3.2.0"
 schedule = "^1.2.0"
+rocketry = "^2.5.1"
+pydantic = "1.10.10"
 
 
 [tool.poetry.group.dev.dependencies]
