@@ -10,6 +10,10 @@ from models import User, Product, Chat
 from database import get_db
 from load_model import load_gpt
 from datetime import datetime 
+import asyncio
+from scheduler import app as app_rocketry
+import logging
+
 path = Path(__file__)
 
 # -----------------------
@@ -38,6 +42,7 @@ path = Path(__file__)
 app = FastAPI(static_url_path="static/")
 app.mount("/static", StaticFiles(directory="static/"), name="static")
 templates = Jinja2Templates(directory="templates/")
+session = app_rocketry.session
 
 ## main page
 @app.get("/", description='main page', response_class=HTMLResponse)
@@ -135,5 +140,45 @@ async def ranking_view(request:Request, db:Session=Depends(get_db)):
     user_view = db.query(User).filter(User.money >=0 ).order_by(User.money.desc()).all()
     return templates.TemplateResponse("ranking.html", {"request": request, "users": user_view})
 
+## upload dialogue data to mongoDB
+@app.get("/scheduled")
+async def get_scheduled_task():
+    return session.tasks
+
+@app.post("/scheduled")
+async def update_dialogue():
+    for task in session.tasks:
+        task.force_run = True
+
+@app.post("/scheduled/shut_down")
+async def shut_down_session():
+    "Shut down the scheduler"
+    session.shut_down()
+
+@app.get("/logs")
+async def read_logs():
+    "schduled task의 log를 불러옵니다"
+    repo = session.get_repo()
+    return repo.filter_by().all()
+
+# server shutdown 시 전부 닫을 수 있도록 재정의
+class Server(uvicorn.Server):
+    def handle_exit(self) -> None:
+        app_rocketry.session.shut_down()
+        return super().handle_exit()
+
+## main 함수
+async def main():
+    server = uvicorn.Server(config=uvicorn.Config(app, workers=1, loop = "asyncio", host="0.0.0.0", ort=8000))
+    api = asyncio.create_task(server.serve())
+    sched = asyncio.create_task(app_rocketry.serve())
+
+    await asyncio.wait([sched, api])
+
+ 
 if __name__=='__main__':
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    logger = logging.getLogger("rocketry.task")
+    logger.addHandler(logging.StreamHandler())
+
+    asyncio.run(main())
