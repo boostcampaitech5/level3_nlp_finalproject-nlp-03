@@ -6,3 +6,4 @@
 *.db
 *.ini
 migrations/
+secrets.py
