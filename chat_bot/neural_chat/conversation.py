@@ -38,7 +38,7 @@ class Conversation:
             if message:
                 ret += role + ": " + message + seps[i % 2]
             else:
-                ret += role + ":"
+                ret += role + ": "
         return ret
 
     def get_scenario(self) -> str:

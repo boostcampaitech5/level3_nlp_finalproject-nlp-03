@@ -51,7 +51,7 @@ def train(args):
         lora_dropout=args.lora_dropout,
         task_type="CAUSAL_LM",
         inference_mode=False,
-        bias="all",
+        bias="none",
     )
 
     # initialize model
