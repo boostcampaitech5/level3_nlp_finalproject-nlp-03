@@ -13,6 +13,7 @@ from datetime import datetime
 import asyncio
 from scheduler import app as app_rocketry
 import logging
+from typing import Optional
 
 path = Path(__file__)
 
@@ -141,19 +142,14 @@ async def ranking_view(request:Request, db:Session=Depends(get_db)):
     return templates.TemplateResponse("ranking.html", {"request": request, "users": user_view})
 
 ## upload dialogue data to mongoDB
-@app.get("/scheduled")
+@app.get("/scheduler")
 async def get_scheduled_task():
     return session.tasks
 
-@app.post("/scheduled")
+@app.post("/scheduler")
 async def update_dialogue():
     for task in session.tasks:
         task.force_run = True
-
-@app.post("/scheduled/shut_down")
-async def shut_down_session():
-    "Shut down the scheduler"
-    session.shut_down()
 
 @app.get("/logs")
 async def read_logs():
@@ -163,13 +159,14 @@ async def read_logs():
 
 # server shutdown 시 전부 닫을 수 있도록 재정의
 class Server(uvicorn.Server):
-    def handle_exit(self) -> None:
+    def handle_exit(self, sig : int, format : Optional[str]) -> None:
+        print("shutting down all task")
         app_rocketry.session.shut_down()
-        return super().handle_exit()
+        return super().handle_exit(sig, format)
 
 ## main 함수
 async def main():
-    server = uvicorn.Server(config=uvicorn.Config(app, workers=1, loop = "asyncio", host="0.0.0.0", ort=8000))
+    server = Server(config=uvicorn.Config(app, workers=1, loop = "asyncio", host="0.0.0.0", port=8000))
     api = asyncio.create_task(server.serve())
     sched = asyncio.create_task(app_rocketry.serve())
 
@@ -177,7 +174,6 @@ async def main():
 
  
 if __name__=='__main__':
-    # uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
     logger = logging.getLogger("rocketry.task")
     logger.addHandler(logging.StreamHandler())
 
