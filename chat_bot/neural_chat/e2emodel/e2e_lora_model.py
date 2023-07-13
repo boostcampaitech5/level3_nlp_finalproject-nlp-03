@@ -1,8 +1,13 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    GenerationConfig,
+)
 from peft import PeftModelForCausalLM, PeftConfig, prepare_model_for_int8_training
 from typing import Union
-from .preprocess import format_scenario, format_chat
+from chat_bot.neural_chat.conversation import Conversation
 
 
 class E2ELoRA(torch.nn.Module):
@@ -28,35 +33,28 @@ class E2ELoRA(torch.nn.Module):
 
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
 
-    def generate(self, input_dict: dict) -> str:
-        scenario = format_scenario(input_dict, self.tokenizer.sep_token)
-        chats = format_chat(input_dict, self.tokenizer.sep_token)
+    def generate(self, conv: Conversation, gen_config: GenerationConfig) -> str:
         tokens = self.tokenizer(
-            scenario + chats + "판매자: ",
+            conv.get_prompt(),
             return_tensors="pt",
             return_token_type_ids=False,
         ).to(self.device)
 
         gen_tokens = self.model.generate(
             **tokens,
-            min_new_tokens=10,
-            max_new_tokens=64,
-            early_stopping=True,
-            do_sample=True,
-            top_k=50,
-            top_p=0.85,
-            num_beams=5,
-            repetition_penalty=1.5,
-            eos_token_id=self.tokenizer.sep_token_id,
-            pad_token_id=self.tokenizer.eos_token_id,
+            generation_config=gen_config,
+            eos_token_id=self.tokenizer.eos_token_id,
+            pad_token_id=self.tokenizer.pad_token_id,
         )
 
         gen_text = self.tokenizer.decode(gen_tokens[0])
 
-        response = gen_text.strip().split(self.tokenizer.sep_token)[-2].strip()
-        response = response.split("구매자: ")[0]
-        if response.startswith("판매자:"):
-            response = response[len("판매자:") :].strip()
+        del tokens
+        del gen_tokens
+        torch.cuda.empty_cache()
+
+        response = gen_text.strip().split(conv.sep2)[-2].strip()
+        response = response.split(f"{conv.roles[1]}:")[-1].strip()
 
         return response
 

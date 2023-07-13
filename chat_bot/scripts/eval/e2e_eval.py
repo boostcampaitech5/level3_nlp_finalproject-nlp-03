@@ -1,26 +1,30 @@
 import sys
 
-sys.path.append("./chat_bot")
-from neural_chat.e2emodel.e2e_lora_model import E2ELoRA
-from neural_chat.e2emodel.preprocess import format_scenario
+sys.path.append("./")
+from chat_bot.neural_chat.e2emodel.e2e_lora_model import E2ELoRA
+from chat_bot.neural_chat.conversation import get_default_conv_template
+from transformers import GenerationConfig
 import argparse
 import torch
 import random
 import json
 
 
-def rollout(model: E2ELoRA, scenario: str):
-    scenario["events"] = []
-    info = format_scenario(scenario, model.tokenizer.sep_token)
-    print(info.replace(model.tokenizer.sep_token, "\n"))
+def rollout(model: E2ELoRA, scenario: str, gen_config: GenerationConfig):
+    conv = get_default_conv_template()
+    conv.scenario["제목"] = scenario["title"]
+    conv.scenario["상품 설명"] = scenario["description"]
+    conv.scenario["가격"] = scenario["price"]
+    print(conv.get_scenario())
     while True:
         user_input = input()
         if user_input == "quit":
             break
-        scenario["events"].append({"role": "구매자", "message": user_input})
-        model_response = model.generate(scenario)
+        conv.append_message("구매자", user_input)
+        conv.append_message("판매자", "")
+        model_response = model.generate(conv, gen_config)
         print(model_response)
-        scenario["events"].append({"role": "판매자", "message": model_response})
+        conv.update_last_message(model_response)
 
 
 if __name__ == "__main__":
@@ -34,7 +38,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     args.data_path = "./data/new_format_dev.json"
-    args.model_checkpoint_dir = "/opt/ml/level3_nlp_finalproject-nlp-03/chat_bot/logs/polyglot-12.8b/checkpoint-300"
+    args.model_checkpoint_dir = (
+        "/opt/ml/level3_nlp_finalproject-nlp-03/chat_bot/logs/kullm-12.8b/checkpoint-80"
+    )
+
+    gen_config = GenerationConfig(
+        max_new_tokens=128,
+        use_cahce=False,
+        early_stopping=True,
+        do_sample=True,
+        top_k=100,
+        top_p=0.85,
+        num_beams=5,
+        temperature=0.9,
+    )
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = E2ELoRA(args.model_checkpoint_dir, device=device, do_quantize=True)
@@ -45,4 +62,4 @@ if __name__ == "__main__":
     for i in range(args.num_rollouts):
         print(f"rollout #{i + 1}")
         scenario = random.choice(data)
-        rollout(model, scenario)
+        rollout(model, scenario, gen_config)
