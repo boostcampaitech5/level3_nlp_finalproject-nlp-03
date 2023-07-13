@@ -1,8 +1,13 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    GenerationConfig,
+)
 from peft import PeftModelForCausalLM, PeftConfig, prepare_model_for_int8_training
 from typing import Union
-from chat_bot.neural_chat.conversation import Conversation, get_default_conv_template
+from chat_bot.neural_chat.conversation import Conversation
 
 
 class E2ELoRA(torch.nn.Module):
@@ -28,7 +33,7 @@ class E2ELoRA(torch.nn.Module):
 
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
 
-    def generate(self, conv: Conversation) -> str:
+    def generate(self, conv: Conversation, gen_config: GenerationConfig) -> str:
         tokens = self.tokenizer(
             conv.get_prompt(),
             return_tensors="pt",
@@ -37,14 +42,7 @@ class E2ELoRA(torch.nn.Module):
 
         gen_tokens = self.model.generate(
             **tokens,
-            min_new_tokens=10,
-            max_new_tokens=64,
-            early_stopping=True,
-            do_sample=True,
-            top_k=50,
-            top_p=0.85,
-            num_beams=5,
-            repetition_penalty=1.5,
+            generation_config=gen_config,
             eos_token_id=self.tokenizer.eos_token_id,
             pad_token_id=self.tokenizer.pad_token_id,
         )
