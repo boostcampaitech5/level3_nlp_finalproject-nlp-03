@@ -30,12 +30,6 @@ import json
 def train(args):
     # make tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    tokenizer.sep_token = "<|sep|>"
-    tokenizer.pad_token = tokenizer.eos_token
-
-def train(args):
-    # make tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = "<|sep|>"
     tokenizer.model_max_length = args.max_length
 
