@@ -18,3 +18,4 @@ wandb/
 *.db
 *.ini
 migrations/
+*.lock
