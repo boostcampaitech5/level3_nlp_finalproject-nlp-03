@@ -5,12 +5,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import uvicorn  
+import os 
 from pathlib import Path
 from models import User, Product, Chat
 from database import get_db
-from load_model import load_gpt
+from load_model import load_model, convert_to_model_input
 from datetime import datetime 
-path = Path(__file__)
+path = Path(__file__).parent
 
 # -----------------------
 # project 구조
@@ -21,7 +22,7 @@ path = Path(__file__)
 #         - templates # html
 #         - main.py   # fastapi
 #         - models.py # db 데이터 포맷 설계
-#         - load_model.py # load gpt model
+#         - load_model.py # load nueral model
 # -----------------------
 # todo
     # async db
@@ -35,9 +36,23 @@ path = Path(__file__)
 # ranking_view(GET) : 랭킹
 # -----------------------
 
-app = FastAPI(static_url_path="static/")
-app.mount("/static", StaticFiles(directory="static/"), name="static")
-templates = Jinja2Templates(directory="templates/")
+app = FastAPI(static_url_path=os.path.join(str(path), "static"))
+app.mount("/static", StaticFiles(directory=os.path.join(str(path), "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(str(path), "templates"))
+
+# 전역 변수로 모델 선언
+model = None
+
+# 모델 로드 함수 정의
+def load_my_model():
+    global model
+    model = load_model()
+    print('MODEL LOAD DONE')
+
+# FastAPI 앱 시작 시 모델 로드
+@app.on_event("startup")
+async def startup_event():
+    load_my_model()
 
 ## main page
 @app.get("/", description='main page', response_class=HTMLResponse)
@@ -105,6 +120,7 @@ async def get_chatting(request:Request, product_id:int, db:Session=Depends(get_d
 
 @app.post("/chatting/{product_id}", response_class=HTMLResponse)
 async def chatting(request:Request, product_id:int, db:Session=Depends(get_db)):
+    global model
     form_data = await request.form()
     input_text = form_data['text']
     
@@ -117,12 +133,13 @@ async def chatting(request:Request, product_id:int, db:Session=Depends(get_db)):
     elif input_text == '끝':
         chat.content += f"구매자:{input_text}"
         db.commit()
-        if len(chat.content.strip().split("\n")) <= 3: db.delete(chat) # 대화 턴이 짧으면 삭제
+        if len(chat.content.strip().split("\n")) <= 2: db.delete(chat) # 대화 턴이 짧으면 삭제
         return RedirectResponse(url="/", status_code=303)
     else:
-        output = '네 좋아요' # 모델output
-        chat.content += f"구매자:{input_text}\n판매자:{output}\n"
-        db.add(chat)
+        chat.content += f"구매자:{input_text}\n"
+        output = model.generate(convert_to_model_input(chat))
+        chat.content += f"판매자:{output}\n"
+
         db.commit()
 
     chats = chat.content.strip().split("\n")
