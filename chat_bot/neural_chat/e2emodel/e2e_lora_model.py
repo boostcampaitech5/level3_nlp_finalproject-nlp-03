@@ -4,6 +4,7 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
     GenerationConfig,
+    pipeline,
 )
 from peft import PeftModelForCausalLM, PeftConfig, prepare_model_for_int8_training
 from typing import Union
@@ -16,19 +17,21 @@ class E2ELoRA(torch.nn.Module):
         checkpoint_path: str,
         device: Union[torch.device, str],
         do_quantize: bool = True,
+        use_adapter: bool = True,
     ):
         super().__init__()
         self.device = device
         peft_config = PeftConfig.from_pretrained(checkpoint_path)
         bnb_config = BitsAndBytesConfig(load_in_8bit=True)
-        model = AutoModelForCausalLM.from_pretrained(
+        self.model = AutoModelForCausalLM.from_pretrained(
             peft_config.base_model_name_or_path,
             quantization_config=bnb_config if do_quantize else None,
         )
         if do_quantize:
-            model = prepare_model_for_int8_training(model)
-        model = PeftModelForCausalLM.from_pretrained(model, checkpoint_path)
-        self.model = model.to(self.device)
+            self.model = prepare_model_for_int8_training(self.model)
+        if use_adapter:
+            self.model = PeftModelForCausalLM.from_pretrained(self.model, checkpoint_path)
+            self.model = self.model.to(self.device)
         self.model.eval()
 
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
