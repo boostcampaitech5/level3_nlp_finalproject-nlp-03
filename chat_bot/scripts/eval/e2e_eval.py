@@ -8,10 +8,10 @@ import argparse
 import torch
 import random
 import json
+from typing import Dict
 
-
-def rollout(model: E2ELoRA, scenario: str, gen_config: GenerationConfig):
-    conv = get_default_conv_template()
+def rollout(model: E2ELoRA, scenario: Dict, gen_config: GenerationConfig, system_prompt:str=None):
+    conv = get_default_conv_template(system_prompt)
     conv.scenario["제목"] = scenario["title"]
     conv.scenario["상품 설명"] = scenario["description"]
     conv.scenario["가격"] = scenario["price"]
@@ -59,7 +59,13 @@ if __name__ == "__main__":
     with open(args.data_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
+    # example system prompt
+    system_prompt = """
+너는 중고거래 판매자야.
+너의 목적은 구매자와 협상하여 원래 가격에 가깝게 파는 것이다.
+구매자가 원래 가격에 비해 너무 낮은 가격을 요구하는 경우, 거절해야돼.
+"""
     for i in range(args.num_rollouts):
         print(f"rollout #{i + 1}")
         scenario = random.choice(data)
-        rollout(model, scenario, gen_config)
+        rollout(model, scenario, gen_config, system_prompt)
