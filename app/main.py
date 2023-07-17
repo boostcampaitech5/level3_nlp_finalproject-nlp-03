@@ -1,23 +1,27 @@
+import requests
+import os
 import logging
+from datetime import datetime
 from typing import Optional
-from fastapi import FastAPI, Request, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from pathlib import Path
+import uvicorn 
+import asyncio
+
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-import requests
-import os
-from datetime import datetime
-import uvicorn 
-import asyncio
-from scheduler import app as app_rocketry
-from pathlib import Path
+from sqlalchemy.orm import Session
+from sqlalchemy import func, and_
+
+import sys
+sys.path.append("/opt/ml/input/level3_nlp_finalproject-nlp-03")
+
+from app.scheduler import app as app_rocketry
 from app.models import User, Product, Chat
 from app.database import get_db
-from load_model import load_gpt
-from datetime import datetime 
-path = Path(__file__)
+
+path = Path(__file__).parent
 
 # -----------------------
 # project 구조
@@ -200,12 +204,6 @@ async def ranking_view(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         "ranking.html", {"request": request, "users": user_view}
     )
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8100, reload=True)
-
-
 
 ## upload dialogue data to mongoDB
 @app.get("/scheduler")

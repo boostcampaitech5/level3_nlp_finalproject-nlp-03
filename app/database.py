@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 # mongoDB 연결을 위한 라이브러리
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
-from secrets import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
+from app.dbaccounts import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
 from bson.objectid import ObjectId
 
 # db접속주소, sqlite3 db파일, 프로젝트 루트디렉토리

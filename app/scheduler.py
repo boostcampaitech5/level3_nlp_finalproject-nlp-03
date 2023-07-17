@@ -1,12 +1,12 @@
 from rocketry import Rocketry
 from rocketry.conds import daily, every
 import time
-
-from models import User, Chat, Product 
 from datetime import datetime, timedelta 
-from database import SessionLocal, dialogue_DB
 from pymongo import MongoClient
-from secrets import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
+
+from app.models import User, Chat, Product 
+from app.database import SessionLocal, dialogue_DB
+from app.dbaccounts import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
 
 app = Rocketry()
 
@@ -37,7 +37,7 @@ def load_chatData():
 
     return dialogue_dataset
 
-@app.task(daily.at("12:00"))
+@app.task(daily.at("11:50"))
 def update_dialogue():
     print("running..")
     dialogue_dataset = load_chatData()

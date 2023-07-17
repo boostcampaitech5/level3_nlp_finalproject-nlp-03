@@ -18,8 +18,5 @@ wandb/
 *.db
 *.ini
 migrations/
-<<<<<<< HEAD
-secrets.py
-=======
 *.lock
->>>>>>> origin/feature/app
+dbaccounts.py
