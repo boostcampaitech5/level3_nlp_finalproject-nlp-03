@@ -1,19 +1,19 @@
+import logging
+from typing import Optional
 from fastapi import FastAPI, Request, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-import uvicorn  
+import uvicorn 
+import asyncio
+from scheduler import app as app_rocketry
 from pathlib import Path
 from models import User, Product, Chat
 from database import get_db
 from load_model import load_gpt
 from datetime import datetime 
-import asyncio
-from scheduler import app as app_rocketry
-import logging
-from typing import Optional
 
 path = Path(__file__)
 

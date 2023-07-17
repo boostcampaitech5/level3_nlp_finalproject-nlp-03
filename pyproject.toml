@@ -25,6 +25,7 @@ flatten-dict = "^0.4.2"
 peft = "^0.3.0"
 accelerate = "^0.20.3"
 bitsandbytes = "^0.40.0.post4"
+gunicorn = "^20.1.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
