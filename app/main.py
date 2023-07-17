@@ -205,16 +205,6 @@ async def ranking_view(request: Request, db: Session = Depends(get_db)):
         "ranking.html", {"request": request, "users": user_view}
     )
 
-## upload dialogue data to mongoDB
-@app.get("/scheduler")
-async def get_scheduled_task():
-    return session.tasks
-
-@app.post("/scheduler")
-async def update_dialogue():
-    for task in session.tasks:
-        task.force_run = True
-
 @app.get("/logs")
 async def read_logs():
     "schduled task의 log를 불러옵니다"
