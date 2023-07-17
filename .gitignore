@@ -1,9 +1,25 @@
 *.json
 *.csv
+__pycache__/
+*.egg-info/
+result*
+logs
+.envrc
+.direnv
 *.pyc
+*.bin
+*.log
+*.txt
+.ipynb_checkpoints/
+.vscode/
+wandb/
 *.pt
 *.out
 *.db
 *.ini
 migrations/
+<<<<<<< HEAD
 secrets.py
+=======
+*.lock
+>>>>>>> origin/feature/app

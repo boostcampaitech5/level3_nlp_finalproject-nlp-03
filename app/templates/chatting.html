@@ -23,7 +23,7 @@
   </div>
   {% endfor %}
 {% endif %}
-  <form method="POST" action="{{ url_for('get_chatting', product_id=product.id) }}">
+  <form method="POST" action="{{ url_for('get_chatting', product_id=product.id) }}" autocomplete="off">
     <div>
         <label for="text">input text:</label>
         <input type="text" id="text" name="text">

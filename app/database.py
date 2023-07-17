@@ -9,7 +9,7 @@ from secrets import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
 from bson.objectid import ObjectId
 
 # db접속주소, sqlite3 db파일, 프로젝트 루트디렉토리
-SQLALCHEMY_DATABASE_URL = 'sqlite:///./app.db'
+SQLALCHEMY_DATABASE_URL = 'sqlite:///./app/app.db'
 
 # 커넥션 풀 생성: db에 접속하는 객체를 일정 갯수만큼 만들어 놓고 돌려가며 사용
 engine=create_engine(
