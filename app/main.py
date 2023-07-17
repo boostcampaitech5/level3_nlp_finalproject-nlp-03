@@ -1,17 +1,15 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-import uvicorn
+import requests
 import os
-from pathlib import Path
-from models import User, Product, Chat
-from database import get_db
-from load_model import load_model, convert_to_model_input
 from datetime import datetime
-from transformers import GenerationConfig
+from pathlib import Path
+from app.models import User, Product, Chat
+from app.database import get_db
 
 path = Path(__file__).parent
 
@@ -24,7 +22,6 @@ path = Path(__file__).parent
 #         - templates # html
 #         - main.py   # fastapi
 #         - models.py # db 데이터 포맷 설계
-#         - load_model.py # load nueral model
 # -----------------------
 # todo
 # async db
@@ -44,35 +41,12 @@ app.mount(
 )
 templates = Jinja2Templates(directory=os.path.join(str(path), "templates"))
 
-# 전역 변수로 모델 선언
-model = None
-
-
-# 모델 로드 함수 정의
-def load_my_model():
-    global model
-    global gen_config
-    model = load_model()
-    # generation config를 일단은 하드코딩 해놨습니다.
-    # 매 게임마다 config가 달라져도 좋을 것 같아요.
-    gen_config = GenerationConfig(
-        max_new_tokens=128,
-        use_cahce=False,
-        early_stopping=True,
-        do_sample=True,
-        top_k=100,
-        top_p=0.85,
-        num_beams=5,
-        temperature=0.9,
-    )
-    print("MODEL LOAD DONE")
-
-
 # FastAPI 앱 시작 시 모델 로드
 @app.on_event("startup")
 async def startup_event():
-    load_my_model()
-
+    global URL, HEADERS
+    URL = 'https://safely-expert-lobster.ngrok-free.app/model'
+    HEADERS = {'ngrok-skip-browser-warning': 'true'}
 
 ## main page
 @app.get("/", description="main page", response_class=HTMLResponse)
@@ -162,34 +136,52 @@ async def get_chatting(
 
 @app.post("/chatting/{product_id}", response_class=HTMLResponse)
 async def chatting(request: Request, product_id: int, db: Session = Depends(get_db)):
-    global model
-    global gen_config
+    global URL, HEADERS
     form_data = await request.form()
     input_text = form_data["text"]
 
     product = db.query(Product).filter(Product.id == product_id).first()
     sample_user = db.query(User).filter(User.id == 1).first()  # 임시
     chat = db.query(Chat).filter(and_(Chat.user == sample_user)).all()[-1]
-
-    if input_text.strip() == "":
-        pass
-    elif input_text == "끝":
-        chat.content += f"구매자:{input_text}"
-        db.commit()
-        if len(chat.content.strip().split("\n")) <= 2:
-            db.delete(chat)  # 대화 턴이 짧으면 삭제
-        return RedirectResponse(url="/", status_code=303)
-    else:
-        chat.content += f"구매자:{input_text}\n"
-        output = model.generate(convert_to_model_input(chat), gen_config)
-        chat.content += f"판매자:{output}\n"
-
-        db.commit()
+    try:
+        if input_text.strip() == "":
+            pass
+        elif input_text == "끝":
+            chat.content += f"구매자:{input_text}"
+            db.commit()
+            if len(chat.content.strip().split("\n")) <= 2:
+                db.delete(chat)  # 대화 턴이 짧으면 삭제
+            return RedirectResponse(url="/", status_code=303)
+        else:
+            chat.content += f"구매자:{input_text}\n"
+            response = requests.post(url=URL, headers=HEADERS, json=convert_to_json(chat))
+            if str(response.status_code).startswith('4'):
+                raise Exception("404")
+            chat.content += f"판매자:{response.json()['text']}\n"
+            db.commit()
+    except Exception as e:
+         print("APP:", e)
+         raise HTTPException(status_code = 404, detail= "Out of Memory")
 
     chats = chat.content.strip().split("\n")
     return templates.TemplateResponse(
         "chatting.html", {"request": request, "product": product, "chats": chats}
     )
+
+# Chat -> json
+def convert_to_json(chat:Chat):
+    messages = chat.content.strip().split("\n")
+    events = []
+    for message in messages:
+        event = [message[:3], message[4:]]
+        events.append(event)
+    output = {
+            "title" : chat.product.title,
+            "description" : chat.product.description,
+            "price" : float(chat.product.price),
+            "events" :  events
+            }
+    return output
 
 
 ## ranking page
@@ -200,6 +192,8 @@ async def ranking_view(request: Request, db: Session = Depends(get_db)):
         "ranking.html", {"request": request, "users": user_view}
     )
 
-
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8100, reload=True)
+
+
