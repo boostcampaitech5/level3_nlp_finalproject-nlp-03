@@ -13,20 +13,26 @@ NO_NUMBER_PRICE = re.compile(r"(?<!\d)(?<!\d\s)(?:[만천백]\s?)+(?=원)")
 # 숫자와 결합될 수 있는 금액이 아닌 단위의 모음입니다.
 # 안정적으로 금액만 뽑기 위해 아래 단위가 붙으면 금액으로 고려하지 않습니다.
 unwanted_units = (
-    "mm",
-    "cm",
-    "m",
-    "km",
-    "년",
-    "월",
-    "일",
-    "시",
-    "분",
-    "초",
-    "mah",
-    "인치",
-    "gb",
-    "mb",
+    "년","월","개월","일","시","분","초", # 시간
+    "테라","기가","메가","헥토","키로","킬로","센티","센치","데시","밀리","미리","마이크로","나노", # 단위
+    "번","회", # 횟수
+    "개","송이","매", # 갯수
+    "파운드","온스","그램","그람","되","홉","톤", # 무게
+    "로","동","호","층", # 주소
+    "섭씨","화씨", # 온도
+    "인치","피트","마일","미터", # 거리
+    "평","평방","헥타르","에이커", # 너비
+    "리터","배럴","갤런","쿼트","파인트", # 부피
+    "파스칼","토르", # 압력
+    "제곱","세제곱",
+    "짝","쪽",
+    "단",
+    "코어",
+    "점",
+    "마력",
+    # "근",
+    # "장",
+    # "퍼센트", "퍼", "%" # 깎아주세요, 할인해주세요, 빼주세요와 함께 활용 가능
 )
 
 # 1000원만 빼주세요와 같이 할인을 요구하는 상황을 이해하기 위해 사용합니다.
@@ -73,14 +79,19 @@ def parse_prices(
     text = text.replace(",", "")
     text = text.lower()
     matches = []
+    eng_greek_letter = re.compile('[a-zA-Z\u0370-\u03FF]') # 영어 알파벳 & 그리스문자 (모든 단위 배제)
 
     for match in NUMBERS.finditer(text):
-        if text[match.end() :].lstrip().startswith(unwanted_units):
-            continue  # 금액이 아닌 단위가 붙은 숫자라면 고려하지 않음.
+        if eng_greek_letter.match(text[match.end() :].lstrip()[0]):
+            continue # 영어는 무조건 단위로 간주함.
+        elif text[match.end() :].lstrip().startswith(unwanted_units):
+            continue # 금액이 아닌 단위가 붙은 숫자라면 고려하지 않음.
         matches.append(match)
     for match in NUMBERS_WITH_TEXT.finditer(text):
-        if text[match.end() :].lstrip().startswith(unwanted_units):
-            continue
+        if eng_greek_letter.match(text[match.end() :].lstrip()[0]):
+            continue # 영어는 무조건 단위로 간주함.
+        elif text[match.end() :].lstrip().startswith(unwanted_units):
+            continue # 금액이 아닌 단위가 붙은 숫자라면 고려하지 않음.
         matches.append(match)
     for match in NO_NUMBER_PRICE.finditer(text):
         matches.append(match)
@@ -89,7 +100,7 @@ def parse_prices(
     final_prices = []
     final_matches = []
     for price, match in zip(prices, matches):
-        if price < ref_price * bottom_ratio and any_string_in(["깎", "빼"], text):
+        if price < ref_price * bottom_ratio and any_string_in(["깎", "빼", "할인", "에누리", "네고"], text):
             # 원래 가격이 20000원인데, 1000원만 깎아달라고 하면 19000원을 의도한 것으로 간주합니다.
             final_prices.append(ref_price - price)
             final_matches.append(match)
@@ -120,10 +131,10 @@ def price_to_int(price: str) -> int:
     if price[-1] == "+":
         price = price[:-1]
 
-    return eval(price)
+    return int(eval(price))
 
 
-def any_string_in(strings: list[str], text: str) -> bool:
+def any_string_in(strings: List[str], text: str) -> bool:
     return any([text.find(string) != -1 for string in strings])
 
 
