@@ -7,11 +7,13 @@
 {% block content %}
 
   {% for user in users %}
+  <div class="ranking">
   <div class="user">
     <h3> {{loop.index}}위: {{user.username}} </h3>
     <p>money:{{ user.money}}</p>
   </div>
   {% endfor %}
+</div>
 
 {% endblock %}  
 

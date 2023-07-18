@@ -1,42 +1,237 @@
-.Title {
-    color: blue;
-    font-size: 24px;
-    text-align: center;
-  }
-.List {
-    color: green;
-    font-size: 18px;
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f8f8;
 }
-  
-.product {
-    border: 1px solid gray;
-    padding: 10px;
-    margin-bottom: 10px;
-  }
-  
-.product h3 {
-    color: red;
-  }
-  
-.product p {
-    color: black;
-  }
-  
-.chats {
-    border: 1px solid gray;
-    padding: 10px;
-    margin-bottom: 10px;
-  }
-  
-.chats h3 {
-    color: red;
-  }
-  
-.chats p {
-    color: navy;
-  }
+
+h1.Title {
+  text-align: center;
+  margin-top: 20px;
+  text-decoration: none;
+}
+
+h1.Title a {
+  text-decoration: none;
+  color: black;
+}
+
+h2.List {
+  text-align: center;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+.nav ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  background-color: #333;
+  display: flex;
+  justify-content: center;
+}
+
+.nav li {
+  display: inline-block;
+  padding: 10px 20px;
+}
+
+.nav li a {
+  color: black;
+  text-decoration: none;
+}
+
+.nav li a:hover {
+  background-color: #555;
+}
+
+/* 네고봇 본문 스타일 */
+.main-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+
+.product-list {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.product-list .product {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.product-list .product-image img {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+}
+
+.product-list .product-details {
+  flex: 1;
+  padding: 0 20px;
+}
+
+.product-list h3 {
+  margin-top: 0;
+}
+
+.product-list .product-button {
+  padding: 10px 20px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.product-list .product-button:hover {
+  background-color: #555;
+}
+
+/* 기타 스타일 및 커스터마이즈할 부분은 여기에 추가 가능 */
+
+/* style.css */
+.chatting .product-info {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chatting  .chats {
+  max-width: 800px;
+  margin: 10px auto;
+  padding: 10px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chatting  form {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chatting  form div {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.chatting  form div span {
+  flex: 0 0 100px;
+}
+
+.chatting  form div input[type="text"] {
+  flex: 1;
+  height: 30px;
+  margin-right: 10px;
+}
+
+.chatting  form div input[type="submit"] {
+  height: 30px;
+  padding: 0 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.chatting  form div input[type="submit"]:hover {
+  background-color: #555;
+}
+
+/* 기타 스타일 및 커스터마이즈할 부분은 여기에 추가 가능 */
+
+
+
+
+
+
 
 .error p {
   color: red;
   font-size:small;
+}
+
+#feedback {
+  width: 600px;
+  height: 300px;
+  text-align: left;
+  vertical-align: top;
+}
+.feedback {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.center-container {
+  text-align: center;
+}
+
+
+
+.signup form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.signup form div {
+  margin-bottom: 10px;
+}
+
+.signup label {
+  display: block;
+  font-weight: bold;
+}
+
+.signup input[type="text"] {
+  width: 100%;
+  height: 30px;
+  padding: 5px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.signup input[type="submit"] {
+  width: 100%;
+  height: 40px;
+  background-color: #333;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.signup input[type="submit"]:hover {
+  background-color: #555;
+}
+
+
+
+.ranking .user {
+  margin-bottom: 20px;
+  text-align: center;
+  margin: 1px;
 }
