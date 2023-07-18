@@ -25,15 +25,12 @@ class SimpleDialogDataset(Dataset):
             raw_data = json.load(f)
 
         conv = get_default_conv_template()
-        roles = {"구매자": conv.roles[0], "판매자": conv.roles[1]}
         data = []
         for d in raw_data:
-            conv.messages = []
-            conv.scenario["제목"] = d["title"]
-            conv.scenario["상품 설명"] = d["description"]
-            conv.scenario["가격"] = d["price"]
-            for ev in d["events"]:
-                conv.append_message(role=roles[ev["role"]], message=ev["message"])
+            if d["events"][0]["role"] != conv.roles[0]:
+                d["events"] = d["events"][1:]
+
+            conv.load_dict(d)
             data.append(conv.get_prompt())
 
         data = tokenizer.eos_token.join(data)
@@ -62,21 +59,12 @@ class VicunaDialogDataset(Dataset):
         with open(fp, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
         conv = get_default_conv_template()
-        roles = {"구매자": conv.roles[0], "판매자": conv.roles[1]}
         conversations = []
-        for i, d in enumerate(raw_data):
-            conv.messages = []
-            conv.scenario["제목"] = d["title"]
-            conv.scenario["상품 설명"] = d["description"]
-            conv.scenario["가격"] = d["price"]
-
-            if roles[d["events"][0]["role"]] != conv.roles[0]:
+        for d in raw_data:
+            if d["events"][0]["role"] != conv.roles[0]:
                 d["events"] = d["events"][1:]
 
-            for j, ev in enumerate(d["events"]):
-                role = roles[ev["role"]]
-                assert role == conv.roles[j % 2], f"{i}"
-                conv.append_message(role=roles[ev["role"]], message=ev["message"])
+            conv.load_dict(d)
             conversations.append(conv.get_prompt())
 
         # target을 masking해서 챗봇의 발화에서만 loss를 계산합니다.
@@ -125,7 +113,7 @@ class VicunaDialogDataset(Dataset):
 if __name__ == "__main__":
     from transformers import AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained("EleutherAI/polyglot-ko-5.8b")
+    tokenizer = AutoTokenizer.from_pretrained("nlpai-lab/kullm-polyglot-12.8b-v2")
     tokenizer.model_max_length = 1024
-    ds = VicunaDialogDataset("./data/chatbot_train.json", tokenizer)
+    ds = VicunaDialogDataset("./data/price_parsed_train.json", tokenizer)
     print(ds[0])
