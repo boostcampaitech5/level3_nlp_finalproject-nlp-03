@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric  
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float  
 from sqlalchemy.orm import relationship
 
 from database import Base 
@@ -25,7 +25,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     username = Column(String, nullable=False, unique=True)
-    money = Column(Integer, default=100)
+    
+    point = Column(Float, default=0.0)
+
     created_at = Column(DateTime, default=datetime.now())
 
 class Chat(Base):

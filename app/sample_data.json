@@ -5,16 +5,21 @@
     ],
 
     "product":[
-        {"title":"아이폰11",
-        "description":"좋아요",
+        {"title":"아이폰7",
+        "description":"5년전에 구매, 뒷면에 기스 있어요. 액정 튼튼함",
         "price":"150000",
-        "image":"no_image.jpeg"
+        "image":"iphone7.jpeg"
         },
-        {"title":"포켓몬",
-        "description":"좋아요",
-        "price":"150000",
+        {"title":"포켓몬 스티커",
+        "description":"어렵게 구한 스티커, S급 상태 유지중",
+        "price":"87000",
+        "image":"metamong.webp"
+        },
+        {"title":"후라이팬",
+        "description":"단단합니다, 이걸로 요리를 하면 맛있어요.",
+        "price":"31000",
         "image":"no_image.jpeg"
-        }
+    }
     ],
 
     "feedback":[
