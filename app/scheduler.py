@@ -7,14 +7,15 @@ from pymongo import MongoClient
 from models import User, Chat, Product 
 from database import SessionLocal, dialogue_DB
 from dbaccounts import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
-
+from typing import Optional
 app = Rocketry()
 
-def load_chatData():
+def load_chatData(last_created:Optional[datetime]=None):
     db = SessionLocal()
-    # 현재를 기준으로 24시간 전에 생성된 아이템은 제외하고 불러오기
-    time_limit = datetime.now() - timedelta(hours=24)
-    chats = db.query(Chat).filter(Chat.created_at >= time_limit).all()
+    if last_created: # dialogue DB에 데이터가 존재하는 경우
+        chats = db.query(Chat).filter(Chat.created_at >= last_created, Chat.created_at < datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)).all() # 대화 데이터 중 가장 created_at의 날짜를 기준으로 그 이후에 생성된 데이터만 불러오기
+    else: # dialogue DB에 데이터가 존재하지 않는 경우
+        chats = db.query(Chat).all()
     dialogue_dataset = []
     for chat in chats:
         messages = chat.content.strip().split("\n")
@@ -37,16 +38,20 @@ def load_chatData():
 
     return dialogue_dataset
 
-@app.task(daily.at("11:50"))
+
+@app.task(daily.at("00:00"))
 def update_dialogue():
     print("running..")
-    dialogue_dataset = load_chatData()
-
+    client = MongoClient(f"mongodb+srv://{MONGODB_ID}:{MONGODB_PASSWORD}@{MONGODB_CLUSTER}.vetxlux.mongodb.net/?retryWrites=true&w=majority")
+    try: # dialogue DB에 데이터가 존재하는 경우 last_created를 찾음
+        last_created = client.ggul_tiger.dialogue.find().sort("created_at",-1).next()["created_at"].replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        dialogue_dataset = load_chatData(last_created)
+    except:
+        print("no data in dialogue DB.. ")
+        dialogue_dataset = load_chatData()
     if len(dialogue_dataset) == 0:
         print("no item to add")
         return
-    
-    client = MongoClient(f"mongodb+srv://{MONGODB_ID}:{MONGODB_PASSWORD}@{MONGODB_CLUSTER}.vetxlux.mongodb.net/?retryWrites=true&w=majority")
 
     client.ggul_tiger.dialogue.insert_many(dialogue_dataset)
     print(f"dialogue dataset updated : new data {len(dialogue_dataset)}")
