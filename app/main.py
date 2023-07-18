@@ -1,6 +1,7 @@
 import requests
 import os
 import logging
+import re 
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
@@ -150,25 +151,39 @@ async def get_chatting(
 
 
 @app.post("/chatting/{product_id}", response_class=HTMLResponse)
-async def chatting(request: Request, product_id: int, name: str = Query(None), db: Session = Depends(get_db)):
+async def chatting(request: Request, product_id: int, name: str = Query(None), price=Query(None), db: Session = Depends(get_db)):
     global URL, HEADERS
+    messages = []
     form_data = await request.form()
-    input_text = form_data["text"]
-
+    if "text" in form_data.keys():
+        input_text = form_data["text"]
     try:
         product = db.query(Product).filter(Product.id == product_id).first()
         current_user = db.query(User).filter(User.username==name).first()
-        chat = db.query(Chat).filter(and_(Chat.user == current_user, Chat.product_id==product_id)).order_by(Chat.created_at).first()
-        print(product, current_user, chat)
-        if input_text.strip() == "":
-            pass
-        elif input_text == "끝":
-            chat.content += f"구매자:{input_text}"
+        chat = db.query(Chat).filter(and_(Chat.user == current_user, Chat.product_id==product_id)).order_by(Chat.created_at.desc()).first()
+        if price is not None and len(chat.content.strip().split("\n")) < 3:
+            messages.append("대화가 필요합니다.")
+        elif price is not None and not price.isdigit():
+            messages.append("정수를 입력해주세요.")
+        elif price is not None:
+            chat.content += f"구매자:##{price}##\n"
+            response = requests.post(url=URL, headers=HEADERS, json=convert_to_json(chat))
+            reply = response.json()['text']
+            if str(response.status_code).startswith('4'):
+                raise Exception("404")
+            reply = re.sub(r"[^\w]", "", reply)
+            chat.content = re.sub(r"##(\d+)##", r"\1원에 구매하겠습니다.", chat.content)
+            chat.content += f"판매자:{reply}\n"
+            if '수락' in reply:
+                point = 1.0 - float(price) / product.price
+                current_user.point = round(current_user.point + point, 2)
+                messages.append(f"거래에 성공하셨습니다!\n+{point:.2f}%할인하셨습니다.")
+            else:
+                messages.append(f"{reply}")
+            messages.append("sample")
             db.commit()
-            if len(chat.content.strip().split("\n")) <= 2:
-                db.delete(chat)  # 대화 턴이 짧으면 삭제
-                db.commit()
-            return RedirectResponse(url="/", status_code=303)
+        elif input_text.strip() == "":
+            pass
         else:
             chat.content += f"구매자:{input_text}\n"
             # response = requests.post(url=URL, headers=HEADERS, json=convert_to_json(chat))
@@ -183,8 +198,8 @@ async def chatting(request: Request, product_id: int, name: str = Query(None), d
 
     chats = chat.content.strip().split("\n")
     return templates.TemplateResponse(
-        "chatting.html", {"request": request, "product": product, "chats": chats, "username":current_user.username}
-    )
+            "chatting.html", {"request": request, "product": product, "chats": chats, "username":current_user.username, "messages":messages}
+        )
 
 # Chat -> json
 def convert_to_json(chat:Chat):
@@ -204,8 +219,11 @@ def convert_to_json(chat:Chat):
 
 ## ranking page
 @app.get("/ranking", response_class=HTMLResponse)
-async def ranking_view(request: Request, db: Session = Depends(get_db)):
-    user_view = db.query(User).filter(User.money >= 0).order_by(User.money.desc()).all()
+async def ranking_view(request: Request, all=Query(None), db: Session = Depends(get_db)):
+    if all is None :
+        user_view = db.query(User).filter(User.point>0).order_by(User.point.desc()).all()
+    else:
+        user_view = db.query(User).order_by(User.point.desc()).all()
     return templates.TemplateResponse(
         "ranking.html", {"request": request, "users": user_view}
     )
@@ -243,7 +261,7 @@ class Server(uvicorn.Server):
 
 ## main 함수
 async def main():
-    server = Server(config=uvicorn.Config("main:app", workers=1, loop = "asyncio", host="0.0.0.0", port=8080))
+    server = Server(config=uvicorn.Config("main:app", workers=1, loop = "asyncio", host="0.0.0.0", port=8080, reload=True))
     api = asyncio.create_task(server.serve())
     sched = asyncio.create_task(app_rocketry.serve())
 
