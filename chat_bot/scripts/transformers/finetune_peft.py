@@ -36,10 +36,10 @@ def train(args):
     # make dataset
     if args.dataset_type == "simple":
         train_dataset = SimpleDialogDataset(
-            args.train_fp, tokenizer=tokenizer, block_size=256
+            args.train_fp, "train", tokenizer=tokenizer, block_size=256
         )
     elif args.dataset_type == "vicuna":
-        train_dataset = VicunaDialogDataset(args.train_fp, tokenizer=tokenizer)
+        train_dataset = VicunaDialogDataset(args.train_fp, "train", tokenizer=tokenizer)
     else:
         raise NotImplementedError
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--train-fp",
-        default="/opt/ml/level3_nlp_finalproject-nlp-03/data/generated_train.json",
+        default="ggul-tiger/negobot_cleaned_100",
     )
 
     parser.add_argument("--model-name", default="nlpai-lab/kullm-polyglot-12.8b-v2")

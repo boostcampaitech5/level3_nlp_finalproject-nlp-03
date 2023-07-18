@@ -1,6 +1,6 @@
 import json
 import torch
-import sys
+import sys, os
 
 sys.path.append("./")
 from torch.utils.data import Dataset
@@ -8,6 +8,7 @@ from transformers import PreTrainedTokenizerFast
 from transformers.trainer_pt_utils import LabelSmoother
 from chat_bot.neural_chat.conversation import get_default_conv_template
 from typing import Dict
+from datasets import load_dataset, load_from_disk
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
@@ -19,15 +20,16 @@ class SimpleDialogDataset(Dataset):
     """
 
     def __init__(
-        self, fp: str, tokenizer: PreTrainedTokenizerFast, block_size: int = 256
+        self, fp: str, split:str, tokenizer: PreTrainedTokenizerFast, block_size: int = 256
     ):
-        with open(fp, "r", encoding="utf-8") as f:
-            raw_data = json.load(f)
-
+        if os.path.isdir(fp):
+            raw_data=load_from_disk(fp)
+        else:
+            raw_data=load_dataset(fp)
         conv = get_default_conv_template()
         roles = {"구매자": conv.roles[0], "판매자": conv.roles[1]}
         data = []
-        for d in raw_data:
+        for d in raw_data[split]:
             conv.messages = []
             conv.scenario["제목"] = d["title"]
             conv.scenario["상품 설명"] = d["description"]
@@ -56,15 +58,17 @@ class SimpleDialogDataset(Dataset):
 class VicunaDialogDataset(Dataset):
     """Vicuna의 학습 방법을 따라서 챗봇의 발화를 제외한 텍스트는 masking하는 데이터셋입니다."""
 
-    def __init__(self, fp: str, tokenizer: PreTrainedTokenizerFast):
-        self.data = []
+    def __init__(self, fp: str, split:str, tokenizer: PreTrainedTokenizerFast):
+        if os.path.isdir(fp):
+            raw_data=load_from_disk(fp)
+        else:
+            raw_data=load_dataset(fp)
 
-        with open(fp, "r", encoding="utf-8") as f:
-            raw_data = json.load(f)
+        self.data = []
         conv = get_default_conv_template()
         roles = {"구매자": conv.roles[0], "판매자": conv.roles[1]}
         conversations = []
-        for i, d in enumerate(raw_data):
+        for i, d in enumerate(raw_data[split]):
             conv.messages = []
             conv.scenario["제목"] = d["title"]
             conv.scenario["상품 설명"] = d["description"]
