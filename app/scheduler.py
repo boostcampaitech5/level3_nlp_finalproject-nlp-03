@@ -4,9 +4,9 @@ import time
 from datetime import datetime, timedelta 
 from pymongo import MongoClient
 
-from app.models import User, Chat, Product 
-from app.database import SessionLocal, dialogue_DB
-from app.dbaccounts import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
+from models import User, Chat, Product 
+from database import SessionLocal, dialogue_DB
+from dbaccounts import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
 
 app = Rocketry()
 
