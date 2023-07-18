@@ -49,6 +49,8 @@ def parse_wanted_price(
     ex2) 구매자: 안녕하세요. 7월이라 덥네요. -> -1
     """
     if role == "구매자":
+        if re.match(r"##<\d+>##", text):
+            return int(text[3:-3])
         price_list, _ = parse_prices(text, buyer_wanted_price, 0.3, 2)
         if not price_list:
             return -1
