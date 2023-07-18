@@ -13,7 +13,7 @@ import re
 
 def load_model():
     lora = E2ELoRA(
-        "/opt/ml/level3/chat_bot/logs/checkpoint-87",
+        "ggul-tiger/kullm-12.8b-negobot-100data",
         "cuda",
     )
     return lora
