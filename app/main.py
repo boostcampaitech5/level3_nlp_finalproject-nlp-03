@@ -4,10 +4,11 @@ import logging
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
+path = Path(__file__).parent
 import uvicorn 
 import asyncio
 
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -15,13 +16,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 
 import sys
-sys.path.append("/opt/ml/input/level3_nlp_finalproject-nlp-03")
+sys.path.append(path.parent)
 
-from app.scheduler import app as app_rocketry
-from app.models import User, Product, Chat
-from app.database import get_db
+from scheduler import app as app_rocketry
+from models import User, Product, Chat, Feedback
+from database import get_db
 
-path = Path(__file__).parent
+
 
 # -----------------------
 # project 구조
@@ -39,7 +40,7 @@ path = Path(__file__).parent
 # front
 # -----------------------
 # main_view(GET) : 중고거래 아이템 리스트
-# login (GET, POST) : 로그인
+# login (GET, POST) : 로그인(x)
 # signup (GET, POST) : 회원가입
 # chatting(GET, POST) : 채팅
 # ranking_view(GET) : 랭킹
@@ -84,79 +85,81 @@ async def signup_form(request: Request):
 async def signup(request: Request, db: Session = Depends(get_db)):
     form_data = await request.form()
     username = form_data["username"]
-    password = form_data["password"]
 
     check = db.query(User).filter(User.username == username).all()
     if check:
         return templates.TemplateResponse(
             "signup.html", {"request": request, "messages": ["이미 존재하는 이름입니다."]}
         )
-    new_user = User(username=username, password=password, created_at=datetime.now())
+    new_user = User(username=username)
     db.add(new_user)
     db.commit()
 
-    return RedirectResponse(url="/login", status_code=303)
+    return RedirectResponse(url="/", status_code=303)
 
 
 ## login page
-@app.get("/login", response_class=HTMLResponse)
-async def login_form(request: Request):
-    return templates.TemplateResponse(
-        "login.html", {"request": request, "messages": []}
-    )
+# @app.get("/login", response_class=HTMLResponse)
+# async def login_form(request: Request):
+#     return templates.TemplateResponse(
+#         "login.html", {"request": request, "messages": []}
+#     )
 
 
-@app.post("/login")
-async def login(request: Request, db: Session = Depends(get_db)):
-    form_data = await request.form()
-    username = form_data["username"]
-    password = form_data["password"]
+# @app.post("/login")
+# async def login(request: Request, db: Session = Depends(get_db)):
+#     form_data = await request.form()
+#     username = form_data["username"]
+#     password = form_data["password"]
 
-    user = db.query(User).filter(User.username == username).all()
-    if not user:
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "messages": ["아이디가 없습니다."]}
-        )  # 아이디오류
-        # pass
-    if isinstance(user, list):
-        user = user[0]
-    if str(user.password) != str(password):
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "messages": ["비밀번호가 틀렸습니다."]}
-        )  # 비밀번호 오류
-    return RedirectResponse(url="/", status_code=303)
+#     user = db.query(User).filter(User.username == username).all()
+#     if not user:
+#         return templates.TemplateResponse(
+#             "login.html", {"request": request, "messages": ["아이디가 없습니다."]}
+#         )  # 아이디오류
+#         # pass
+#     if isinstance(user, list):
+#         user = user[0]
+#     if str(user.password) != str(password):
+#         return templates.TemplateResponse(
+#             "login.html", {"request": request, "messages": ["비밀번호가 틀렸습니다."]}
+#         )  # 비밀번호 오류
+#     return RedirectResponse(url="/", status_code=303)
 
 
 ## chatting page
 @app.get("/chatting/{product_id}", response_class=HTMLResponse)
 async def get_chatting(
-    request: Request, product_id: int, db: Session = Depends(get_db)
+    request: Request, product_id: int, name: str = Query(None), db: Session = Depends(get_db)
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
-    sample_user = db.query(User).filter(User.id == 1).first()  # 임시
+    current_user = db.query(User).filter(User.username==name).first()
+    if not current_user:
+        return RedirectResponse(url="/signup", status_code=303)
     new_chat = Chat(
         content="",
         created_at=datetime.now(),
-        user=sample_user,  # 로그인 구현후에 request.user (현재유저)로 변경
+        user=current_user,
         product=product,
     )
     db.add(new_chat)
     db.commit()
     return templates.TemplateResponse(
-        "chatting.html", {"request": request, "product": product}
+        "chatting.html", {"request": request, "product": product, "username":current_user.username}
     )
 
 
 @app.post("/chatting/{product_id}", response_class=HTMLResponse)
-async def chatting(request: Request, product_id: int, db: Session = Depends(get_db)):
+async def chatting(request: Request, product_id: int, name: str = Query(None), db: Session = Depends(get_db)):
     global URL, HEADERS
     form_data = await request.form()
     input_text = form_data["text"]
 
-    product = db.query(Product).filter(Product.id == product_id).first()
-    sample_user = db.query(User).filter(User.id == 1).first()  # 임시
-    chat = db.query(Chat).filter(and_(Chat.user == sample_user)).all()[-1]
     try:
+        product = db.query(Product).filter(Product.id == product_id).first()
+        current_user = db.query(User).filter(User.username==name).first()
+        chat = db.query(Chat).filter(and_(Chat.user == current_user, Chat.product_id==product_id)).order_by(Chat.created_at).first()
+        print(product, current_user, chat)
         if input_text.strip() == "":
             pass
         elif input_text == "끝":
@@ -164,13 +167,15 @@ async def chatting(request: Request, product_id: int, db: Session = Depends(get_
             db.commit()
             if len(chat.content.strip().split("\n")) <= 2:
                 db.delete(chat)  # 대화 턴이 짧으면 삭제
+                db.commit()
             return RedirectResponse(url="/", status_code=303)
         else:
             chat.content += f"구매자:{input_text}\n"
-            response = requests.post(url=URL, headers=HEADERS, json=convert_to_json(chat))
-            if str(response.status_code).startswith('4'):
-                raise Exception("404")
-            chat.content += f"판매자:{response.json()['text']}\n"
+            # response = requests.post(url=URL, headers=HEADERS, json=convert_to_json(chat))
+            # if str(response.status_code).startswith('4'):
+            #     raise Exception("404")
+            # chat.content += f"판매자:{response.json()['text']}\n"
+            chat.content += f"판매자:hello\n"
             db.commit()
     except Exception as e:
          print("APP:", e)
@@ -178,7 +183,7 @@ async def chatting(request: Request, product_id: int, db: Session = Depends(get_
 
     chats = chat.content.strip().split("\n")
     return templates.TemplateResponse(
-        "chatting.html", {"request": request, "product": product, "chats": chats}
+        "chatting.html", {"request": request, "product": product, "chats": chats, "username":current_user.username}
     )
 
 # Chat -> json
@@ -205,6 +210,24 @@ async def ranking_view(request: Request, db: Session = Depends(get_db)):
         "ranking.html", {"request": request, "users": user_view}
     )
 
+## feedback
+@app.get("/feedback" ,response_class=HTMLResponse)
+async def feedback_form(request:Request):
+        return templates.TemplateResponse(
+        "feedback.html", {"request": request}
+    )
+
+@app.post("/feedback" )
+async def feedback_form(request:Request, db: Session = Depends(get_db)):
+        form_data = await request.form()
+        feedback = form_data['feedback'] # str
+        ## feedback 저장
+        db.add(Feedback(feedback=feedback))
+        db.commit()
+        return templates.TemplateResponse(
+        "index.html", {"request": request}
+    )
+
 @app.get("/logs")
 async def read_logs():
     "schduled task의 log를 불러옵니다"
@@ -220,7 +243,7 @@ class Server(uvicorn.Server):
 
 ## main 함수
 async def main():
-    server = Server(config=uvicorn.Config(app, workers=1, loop = "asyncio", host="0.0.0.0", port=8000))
+    server = Server(config=uvicorn.Config("main:app", workers=1, loop = "asyncio", host="0.0.0.0", port=8080))
     api = asyncio.create_task(server.serve())
     sched = asyncio.create_task(app_rocketry.serve())
 
