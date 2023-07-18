@@ -5,6 +5,13 @@ body {
   background-color: #f8f8f8;
 }
 
+.bottom {
+  color:#b4b4b4;
+  text-align: center;
+  text-decoration: none;
+  margin: 2px;
+}
+
 h1.Title {
   text-align: center;
   margin-top: 20px;
@@ -76,6 +83,7 @@ h2.List {
   width: 200px;
   height: 200px;
   object-fit: cover;
+  border: 1px solid silver;
 }
 
 .product-list .product-details {
@@ -106,7 +114,7 @@ h2.List {
   max-width: 800px;
   margin: 20px auto;
   padding: 20px;
-  background-color: white;
+  background-color: #FAFAD2;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -155,16 +163,37 @@ h2.List {
   background-color: #555;
 }
 
-/* 기타 스타일 및 커스터마이즈할 부분은 여기에 추가 가능 */
+.chatting #textForm .button {
+  height: 30px;
+  padding: 0 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px; /* 간격을 주기 위해 추가 */
+}
+
+.chatting #textForm .button:hover {
+  background-color: #555;
+}
+
+.ranking button.button {
+  height: 30px;
+  padding: 0 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px; /* 간격을 주기 위해 추가 */
+}
+
+.ranking button.button:hover {
+  background-color: #555;
+}
 
 
-
-
-
-
-
-.error p {
-  color: red;
+.chatting .messages {
+  color: white;
   font-size:small;
 }
 
@@ -174,12 +203,28 @@ h2.List {
   text-align: left;
   vertical-align: top;
 }
+
 .feedback {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 90vh;
   margin: 0;
+}
+.feedback .button input{
+  height: 30px;
+  padding: 0 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px; 
+}
+
+.feedback .center-container img {
+  width: 300px;
+  height: 300px;
+  object-fit: cover;
 }
 
 .center-container {
