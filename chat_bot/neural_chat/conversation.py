@@ -1,6 +1,6 @@
 import dataclasses
-from typing import List, Dict, Optional
-
+from typing import List, Dict, Optional, Union
+from transformers import PreTrainedTokenizer, AutoTokenizer
 
 def get_default_conv_template():
     """End to End 모델을 위한 기본 탬플릿입니다."""
@@ -33,16 +33,33 @@ class Conversation:
     sep: str
     sep2: str = None
 
+    tokenizer:PreTrainedTokenizer=AutoTokenizer.from_pretrained("nlpai-lab/kullm-polyglot-12.8b-v2")
+    max_token:int=2000
+
     def get_prompt(self) -> str:
         """Get the prompt for generation."""
+        accum_token_num=0
         seps = [self.sep, self.sep2]
-        ret = self.system + seps[0] + self.get_scenario()
+
+        scenario = self.system + seps[0] + self.get_scenario()
+        accum_token_num+=len(self.tokenizer(scenario)['input_ids'])
+
+        dialog=[]
         for i, (role, message) in enumerate(self.messages):
             if message:
-                ret += role + ": " + message + seps[i % 2]
+                append_msg = role + ": " + message + seps[i % 2]
             else:
-                ret += role + ": "
-        return ret
+                append_msg = role + ": "
+            dialog.append(append_msg)
+
+        for i, msg in enumerate(reversed(dialog), 1):
+            accum_token_num += len(self.tokenizer(msg)["input_ids"])
+            if accum_token_num>self.max_token:
+                dialog=dialog[-i:]
+                break
+
+        dialog = "".join(dialog)
+        return scenario+dialog
 
     def get_scenario(self) -> str:
         """시나리오를 문자열로 반환합니다."""
