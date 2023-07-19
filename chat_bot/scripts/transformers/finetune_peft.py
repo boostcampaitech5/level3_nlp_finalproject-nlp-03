@@ -36,10 +36,10 @@ def train(args):
     # make dataset
     if args.dataset_type == "simple":
         train_dataset = SimpleDialogDataset(
-            args.train_fp, "train", tokenizer=tokenizer, block_size=256
+            args.train_fp, tokenizer=tokenizer, split="train", block_size=256
         )
     elif args.dataset_type == "vicuna":
-        train_dataset = VicunaDialogDataset(args.train_fp, "train", tokenizer=tokenizer)
+        train_dataset = VicunaDialogDataset(args.train_fp, tokenizer=tokenizer, split="train")
     else:
         raise NotImplementedError
 
@@ -117,14 +117,14 @@ if __name__ == "__main__":
     parser.add_argument("--max-length", type=int, default=1024)
     parser.add_argument("--epoch", type=int, default=3)
     parser.add_argument("--max-steps", type=int, default=200)
-    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--grad-accum", type=int, default=2)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--output-dir", default="./chat_bot/logs/kullm-polyglot-12.8b-prefix")
     parser.add_argument("--run-name", default="prefix_tuning")
 
     # peft methods
-    parser.add_argument("--peft-type", default="prefix") # ["lora", "prefix"]
+    parser.add_argument("--peft-type", default="lora") # ["lora", "prefix"]
     # lora
     parser.add_argument("--lora-r", type=int, default=16)
     parser.add_argument("--lora-alpha", type=int, default=16)

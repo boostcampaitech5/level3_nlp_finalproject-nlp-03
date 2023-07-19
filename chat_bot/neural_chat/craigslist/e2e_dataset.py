@@ -20,22 +20,19 @@ class SimpleDialogDataset(Dataset):
     """
 
     def __init__(
-        self, fp: str, split:str, tokenizer: PreTrainedTokenizerFast, block_size: int = 256
+        self, fp: str, tokenizer: PreTrainedTokenizerFast, split:str="train", block_size: int = 256
     ):
         if os.path.isdir(fp):
             raw_data=load_from_disk(fp)
         else:
             raw_data=load_dataset(fp)
         conv = get_default_conv_template()
-        roles = {"구매자": conv.roles[0], "판매자": conv.roles[1]}
         data = []
         for d in raw_data[split]:
-            conv.messages = []
-            conv.scenario["제목"] = d["title"]
-            conv.scenario["상품 설명"] = d["description"]
-            conv.scenario["가격"] = d["price"]
-            for ev in d["events"]:
-                conv.append_message(role=roles[ev["role"]], message=ev["message"])
+            if d["events"][0]["role"] != conv.roles[0]:
+                d["events"] = d["events"][1:]
+
+            conv.load_dict(d)
             data.append(conv.get_prompt())
 
         data = tokenizer.eos_token.join(data)
@@ -58,7 +55,7 @@ class SimpleDialogDataset(Dataset):
 class VicunaDialogDataset(Dataset):
     """Vicuna의 학습 방법을 따라서 챗봇의 발화를 제외한 텍스트는 masking하는 데이터셋입니다."""
 
-    def __init__(self, fp: str, split:str, tokenizer: PreTrainedTokenizerFast):
+    def __init__(self, fp: str, tokenizer: PreTrainedTokenizerFast, split:str="train"):
         if os.path.isdir(fp):
             raw_data=load_from_disk(fp)
         else:
@@ -66,21 +63,12 @@ class VicunaDialogDataset(Dataset):
 
         self.data = []
         conv = get_default_conv_template()
-        roles = {"구매자": conv.roles[0], "판매자": conv.roles[1]}
         conversations = []
-        for i, d in enumerate(raw_data[split]):
-            conv.messages = []
-            conv.scenario["제목"] = d["title"]
-            conv.scenario["상품 설명"] = d["description"]
-            conv.scenario["가격"] = d["price"]
-
-            if roles[d["events"][0]["role"]] != conv.roles[0]:
+        for d in raw_data[split]:
+            if d["events"][0]["role"] != conv.roles[0]:
                 d["events"] = d["events"][1:]
 
-            for j, ev in enumerate(d["events"]):
-                role = roles[ev["role"]]
-                assert role == conv.roles[j % 2], f"{i}"
-                conv.append_message(role=roles[ev["role"]], message=ev["message"])
+            conv.load_dict(d)
             conversations.append(conv.get_prompt())
 
         # target을 masking해서 챗봇의 발화에서만 loss를 계산합니다.
@@ -129,7 +117,7 @@ class VicunaDialogDataset(Dataset):
 if __name__ == "__main__":
     from transformers import AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained("EleutherAI/polyglot-ko-5.8b")
+    tokenizer = AutoTokenizer.from_pretrained("nlpai-lab/kullm-polyglot-12.8b-v2")
     tokenizer.model_max_length = 1024
-    ds = VicunaDialogDataset("./data/chatbot_train.json", tokenizer)
+    ds = VicunaDialogDataset("ggul-tiger/negobot_cleaned_100", tokenizer, "train")
     print(ds[0])
