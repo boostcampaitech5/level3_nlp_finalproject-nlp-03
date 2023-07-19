@@ -7,11 +7,7 @@ sys.path.append(Path(__file__).parent)
 from load_model import load_model, convert_to_model_input
 from datetime import datetime
 from transformers import GenerationConfig
-<<<<<<< HEAD
 from logger import log
-=======
-
->>>>>>> fa25e5e1615684a3431fc396433dd9efb766605d
 path = Path(__file__).parent
 app = FastAPI()
 logger = log()
