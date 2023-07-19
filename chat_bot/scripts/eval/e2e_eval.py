@@ -8,13 +8,16 @@ import argparse
 import torch
 import random
 import json
+from typing import Dict
 
 
-def rollout(model: E2ELoRA, scenario: str, gen_config: GenerationConfig):
+def rollout(
+    model: E2ELoRA,
+    scenario: Dict,
+    gen_config: GenerationConfig,
+):
     conv = get_default_conv_template()
-    conv.scenario["제목"] = scenario["title"]
-    conv.scenario["상품 설명"] = scenario["description"]
-    conv.scenario["가격"] = scenario["price"]
+    conv.scenario = {k: scenario[k] for k in conv.scenario_key_mapping.keys()}
     print(conv.get_scenario())
     while True:
         user_input = input()
@@ -24,37 +27,36 @@ def rollout(model: E2ELoRA, scenario: str, gen_config: GenerationConfig):
         conv.append_message("판매자", "")
         model_response = model.generate(conv, gen_config)
         print(model_response)
+        if model_response.startswith("##<"):
+            break
         conv.update_last_message(model_response)
 
 
 if __name__ == "__main__":
+    import warnings
+
+    warnings.filterwarnings("ignore")
     # parse arguments
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--data-path", required=True)
-    # parser.add_argument("--output-path", required=True)
-    parser.add_argument("--model_checkpoint_dir")
+    parser.add_argument("--data-path", required=True)
+    parser.add_argument("--model_checkpoint_path", required=True)
     parser.add_argument("--num-rollouts", type=int, default=30)
-    parser.add_argument("--scenario", default=None)
     args = parser.parse_args()
 
-    args.data_path = "./data/new_format_dev.json"
-    args.model_checkpoint_dir = (
-        "/opt/ml/level3_nlp_finalproject-nlp-03/chat_bot/logs/kullm-12.8b/checkpoint-80"
-    )
-
     gen_config = GenerationConfig(
+        # min_new_tokens=2,
         max_new_tokens=128,
-        use_cahce=False,
+        use_cahce=True,
         early_stopping=True,
         do_sample=True,
-        top_k=100,
+        top_k=50,
         top_p=0.85,
-        num_beams=5,
+        num_beams=3,
         temperature=0.9,
     )
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = E2ELoRA(args.model_checkpoint_dir, device=device, do_quantize=True)
+    model = E2ELoRA(args.model_checkpoint_path, device=device, do_quantize=True)
 
     with open(args.data_path, "r", encoding="utf-8") as f:
         data = json.load(f)

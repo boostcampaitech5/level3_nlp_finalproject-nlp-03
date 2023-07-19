@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 
 def get_default_conv_template():
@@ -8,6 +8,7 @@ def get_default_conv_template():
         system="중고거래 판매자와 구매자의 대화입니다. 판매자는 구매자의 질문에 성실히 답변하고, 판매 가격을 최대화합니다.",
         roles=["구매자", "판매자"],
         scenario={},
+        scenario_key_mapping={"title": "제목", "description": "상품 설명", "price": "가격"},
         messages=[],
         sep="\n",
         sep2="<|endoftext|>",
@@ -24,6 +25,8 @@ class Conversation:
     roles: List[str]
     # 제목, 상품 설명, 가격 등의 정보가 저장되는 시나리오 정보
     scenario: Dict
+    # 프롬프트를 생성할 때 scenario에 있는 title, dict 등의 key를 어떤 단어로 mapping할지
+    scenario_key_mapping: Dict
     # 모든 메세지의 리스트. [역할, 메세지] 형태로 저장됩니다.
     messages: List[List[str]]
     #
@@ -44,7 +47,13 @@ class Conversation:
     def get_scenario(self) -> str:
         """시나리오를 문자열로 반환합니다."""
         return (
-            self.sep.join([f"[{k}] {v}" for k, v in self.scenario.items()]) + self.sep
+            self.sep.join(
+                [
+                    f"[{v}] {self.scenario[k]}"
+                    for k, v in self.scenario_key_mapping.items()
+                ]
+            )
+            + self.sep
         )
 
     def append_message(self, role: str, message: str):
@@ -55,10 +64,25 @@ class Conversation:
         """마지막 메세지를 수정합니다."""
         self.messages[-1][1] = message
 
+    def load_dict(self, formatted_dict: dict):
+        """format된 dict를 불러옵니다."""
+        self.messages = []
+        self.scenario = {k: formatted_dict[k] for k in self.scenario_key_mapping.keys()}
+        for i, ev in enumerate(formatted_dict["events"]):
+            assert self.roles[i % 2] == ev["role"], "구매자, 판매자 순서로 된 데이터를 입력해주세요."
+            self.append_message(ev["role"], ev["message"])
+
 
 if __name__ == "__main__":
     conv = get_default_conv_template()
-    conv.scenario = {"제목": "아이폰 팔아요", "상품 설명": "지구 최강 아이폰", "가격": 10000}
-    conv.append_message(role="구매자", message="안녕하세요!")
-    conv.append_message(role="판매자", message="방가방가")
+    sample_data = {
+        "title": "아이폰 팔아요",
+        "description": "지구 최강 아이폰",
+        "price": 10000,
+        "events": [
+            {"role": "구매자", "message": "안녕하세요!"},
+            {"role": "판매자", "message": "방가방가"},
+        ],
+    }
+    conv.load_dict(sample_data)
     print(conv.get_prompt())
