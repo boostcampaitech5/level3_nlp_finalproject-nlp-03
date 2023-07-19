@@ -10,8 +10,7 @@
   {% for user in users %}
   <div class="user">
     <h3> {{loop.index}}위: {{user.username}} </h3>
-    {% if user.point >= 0 %}<p>누적 할인 성공: +{{ user.point}}%</p>
-    {% else %}<p>누적 할인 포인트: {{ user.point }}%</p>{% endif %}
+    <p>누적 네고율 +{{ user.point }}%</p>
   </div>
   
   {% endfor %}

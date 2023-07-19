@@ -30,15 +30,18 @@
     <form id="textForm" method="POST" action="{{ url_for('get_chatting', product_id=product.id)}}?name={{username}}" autocomplete="off">
       <div>
         <span>{{username}}</span>
+
         <input type="text" id="text" name="text" placeholder="메세지 입력">
         {% if messages|length>1 %}
         <button class="button" type="button" onclick="goToHomepage()">홈으로 이동</button>
         {% else %}
-        <input type="submit" value="입력">
-        <button class="button" type="button" onclick="openPopup()">가격 제시</button>
+        <div id="loadingOverlay" style="display: none;">
+          <div id="loadingSpinner">loading</div>
+        </div>
+
+        <input id="submit" type="submit" value="입력" onclick="showLoading()">
+        <button id="offer" class="button" type="button" onclick="openPopup()">최종가격 제시</button>
       {% endif %}
-      </div>
-      <div>
       </div>
     </form>
 
@@ -59,7 +62,7 @@
     alert(messageDiv.textContent);
   }
       function openPopup() {
-        const price = prompt("가격을 입력하세요(int):");
+        const price = prompt("최종가격을 제안하면 거래가 종료됩니다.\n최종가격을 제안하세요(int):");
         if (price !== null) {
           const form = document.createElement('form');
           form.method = 'POST';
@@ -72,6 +75,23 @@
       function goToHomepage() {
     window.location.href = '/';
   }
+    </script>
+
+    <script>
+      function showLoading() {
+        var form = document.getElementById("textForm");
+        var loadingOverlay = document.getElementById("loadingOverlay");
+        var textInput = document.getElementById("text");
+        var submitInput = document.getElementById("submit");
+        var offerBtn = document.getElementById("offer");
+        
+        // // Show the loading message
+        loadingOverlay.style.display = "block";
+        // textInput.style.display = "none";
+        submitInput.style.display = "none";
+        offerBtn.style.display = "none";
+        form.submit();
+      }
     </script>
   
 </div>
