@@ -34,7 +34,7 @@ class Conversation:
     sep2: str = None
 
     tokenizer:PreTrainedTokenizer=AutoTokenizer.from_pretrained("nlpai-lab/kullm-polyglot-12.8b-v2")
-    max_token:int=2048
+    max_token:int=2000
 
     def get_prompt(self) -> str:
         """Get the prompt for generation."""
