@@ -37,6 +37,9 @@ class Conversation:
         """Get the prompt for generation."""
         seps = [self.sep, self.sep2]
         ret = self.system + seps[0] + self.get_scenario()
+        if len(self.messages)>10:
+            # 임시 rule : 메시지 10개 넘어가면 최근 10개 메시지만 기억하고 반영
+            self.messages=self.messages[-10:]
         for i, (role, message) in enumerate(self.messages):
             if message:
                 ret += role + ": " + message + seps[i % 2]
