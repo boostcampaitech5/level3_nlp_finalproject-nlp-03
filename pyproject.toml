@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "negobot"
+name = "app"
 version = "0.1.0"
 description = "Boostcamp AI tech NLP-03 final project. Chatbot specialized for bargain."
 authors = ["KimuGenie <baby11686@naver.com>","wontaek <dnjdsxor21@gmail.com>", "JSY <jsy98515@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8.5"
+python = "^3.9"
 sqlalchemy = "^2.0.18"
 fastapi = "^0.100.0"
 uvicorn = "^0.22.0"
@@ -18,7 +18,7 @@ motor = "^3.2.0"
 schedule = "^1.2.0"
 rocketry = "^2.5.1"
 pydantic = "1.10.10"
-torch = { url = "https://download.pytorch.org/whl/cu117/torch-2.0.1%2Bcu117-cp38-cp38-linux_x86_64.whl" }
+torch = { url = "https://download.pytorch.org/whl/cu117/torch-2.0.1%2Bcu117-cp39-cp39-linux_x86_64.whl"}
 transformers = "^4.30.2"
 tqdm = "^4.65.0"
 flatten-dict = "^0.4.2"
@@ -27,6 +27,11 @@ accelerate = "^0.20.3"
 bitsandbytes = "^0.40.0.post4"
 gunicorn = "^20.1.0"
 nvidia-cusparse-cu11 = "^11.7.5.86"
+passlib = "^1.7.4"
+bcrypt = "^4.0.1"
+jwt = "^1.3.1"
+pyjwt = "^2.7.0"
+google-cloud-storage = "^2.10.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
