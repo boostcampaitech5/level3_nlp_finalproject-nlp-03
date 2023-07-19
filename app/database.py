@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 # mongoDB 연결을 위한 라이브러리
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
-from dbaccounts import MONGODB_ID, MONGODB_PASSWORD, MONGODB_CLUSTER
+from key.key import MONGODB
 from bson.objectid import ObjectId
 
 # db접속주소, sqlite3 db파일, 프로젝트 루트디렉토리
@@ -38,7 +38,8 @@ class MongoDB:
         self.engine = None
 
     def connect(self):
-        self.client = AsyncIOMotorClient(f"mongodb+srv://{MONGODB_ID}:{MONGODB_PASSWORD}@{MONGODB_CLUSTER}.vetxlux.mongodb.net/?retryWrites=true&w=majority")
+        db = MONGODB()
+        self.client = AsyncIOMotorClient(f"mongodb+srv://{db.MONGODB_ID}:{db.MONGODB_PASSWORD}@{db.MONGODB_CLUSTER}.vetxlux.mongodb.net/?retryWrites=true&w=majority")
         print("Mongo DB와 비동기적으로 연결되었습니다.")
     
     def close(self):
