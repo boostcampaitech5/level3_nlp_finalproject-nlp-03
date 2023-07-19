@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Nume
 from sqlalchemy.orm import relationship
 
 from database import Base 
+from datetime import datetime
 
 # db init
 # $ alembic init migrations
@@ -16,18 +17,16 @@ class Product(Base):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=False)
     image = Column(String, default='no_image.jpeg')
-    price = Column(Numeric(precision=3, scale=2), default=50)
-    created_at = Column(DateTime, nullable=False)
-
+    price = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.now())
 
 class User(Base):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True)
     username = Column(String, nullable=False, unique=True)
-    password = Column(Integer, nullable=False)
-    money = Column(Numeric(precision=3, scale=2), default=100)
-    created_at = Column(DateTime, nullable=False)
+    money = Column(Integer, default=100)
+    created_at = Column(DateTime, default=datetime.now())
 
 class Chat(Base):
     __tablename__ = "chat"
@@ -35,12 +34,17 @@ class Chat(Base):
     id = Column(Integer, primary_key=True)
     
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.now())
 
-    # "User":참조할 모델명, backref:역참조 설정
     user_id = Column(Integer, ForeignKey("user.id"))
     user = relationship("User", backref="chats")
 
     product_id = Column(Integer, ForeignKey("product.id"))
     product = relationship("Product", backref="chats")
-    
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id = Column(Integer, primary_key=True)
+    feedback = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.now())

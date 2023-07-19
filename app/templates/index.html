@@ -5,15 +5,21 @@
 {% endblock %} 
 
 {% block content %}
-
+<div class="product-list">
   {% for product in products %}
   <div class="product">
-    <h3>  <a href="{{ url_for('get_chatting', product_id=product.id) }}">{{ product.title }}</a> </h3>
-    <p>{{ product.description }}</p>
-    <p>가격:{{ product.price }}만원</p>
-    <img src="/static/images/{{ product.image }}" alt="{{ product.title }}" width="200", height="200">
+    <div class="product-image">
+      <img src="/static/images/{{ product.image }}" alt="{{ product.title }}">
+    </div>
+    <div class="product-details">
+      <h3>{{ product.title }}</h3>
+      <p>{{ product.description }}</p>
+      <p>가격:{{ product.price }}만원</p>
+      <button class="product-button" data-product-id="{{ product.id }}">입장</button>
+    </div>
   </div>
   {% endfor %}
-
+</div>
+  <script src="static/js/script.js"></script>
 {% endblock %}  
 

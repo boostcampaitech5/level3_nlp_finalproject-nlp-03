@@ -11,7 +11,15 @@ from typing import Union
 from chat_bot.neural_chat.conversation import Conversation
 from chat_bot.neural_chat.advisor import Advisor
 
-
+def convert_to_model_input(example):
+    conv = get_default_conv_template()
+    conv.scenario["제목"] = example['title']
+    conv.scenario["상품 설명"] = example['description']
+    conv.scenario["가격"] = example['price']
+    conv.messages = example['events']
+    conv.append_message(conv.roles[1], "")
+    return conv
+    
 class E2ELoRA(torch.nn.Module):
     def __init__(
         self,

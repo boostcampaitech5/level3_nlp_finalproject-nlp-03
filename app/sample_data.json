@@ -1,0 +1,27 @@
+{
+    "user":[
+        {"username":"ggul_tiger"},
+        {"username":"sample"}
+    ],
+
+    "product":[
+        {"title":"아이폰11",
+        "description":"좋아요",
+        "price":"150000",
+        "image":"no_image.jpeg"
+        },
+        {"title":"포켓몬",
+        "description":"좋아요",
+        "price":"150000",
+        "image":"no_image.jpeg"
+        }
+    ],
+
+    "feedback":[
+        {"feedback":"sample feedback"}
+    ],
+    
+    "chat":[
+        
+    ]
+}

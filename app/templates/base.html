@@ -6,17 +6,16 @@
   <title>네고봇</title>
 </head>
 <body>
-  <h1 class="Title">네고봇</h1>
-  <ul>
-    <li><a href="/">Home</a></li>
-    <li><a href="/login">Login</a></li>
-    <li><a href="/signup">Sign Up</a></li>
-    <li><a href="/ranking">Ranking</a></li>
+  <h1 class="Title"><a href="/">네고봇</a></h1>
+  <ul class="nav">
+    <li><a href="/">List</a></li>
+    <li><a href="/signup">회원등록</a></li>
+    <li><a href="/ranking">랭킹</a></li>
   </ul>
-  {% block nav %}{% endblock %}
   
+  <div class="main-content">
   {% block subtitle %}{% endblock %}
-  
   {% block content %}{% endblock %}
+  </div>
 </body>
 </html>
