@@ -233,12 +233,12 @@ def convert_to_json(chat:Chat):
     messages = chat.content.strip().split("\n")
     events = []
     for message in messages:
-        event = [message[:3], message[4:]]
+        event = {"role":message[:3], "message":message[4:]}
         events.append(event)
     output = {
             "title" : chat.product.title,
             "description" : chat.product.description,
-            "price" : float(chat.product.price),
+            "price" : int(chat.product.price),
             "events" :  events
             }
     return output
