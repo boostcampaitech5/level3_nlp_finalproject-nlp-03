@@ -20,12 +20,16 @@ class SimpleDialogDataset(Dataset):
     """
 
     def __init__(
-        self, fp: str, tokenizer: PreTrainedTokenizerFast, split:str="train", block_size: int = 256
+        self,
+        fp: str,
+        tokenizer: PreTrainedTokenizerFast,
+        split: str = "train",
+        block_size: int = 256,
     ):
         if os.path.isdir(fp):
-            raw_data=load_from_disk(fp)
+            raw_data = load_from_disk(fp)
         else:
-            raw_data=load_dataset(fp)
+            raw_data = load_dataset(fp)
         conv = get_default_conv_template()
         data = []
         for d in raw_data[split]:
@@ -55,11 +59,13 @@ class SimpleDialogDataset(Dataset):
 class VicunaDialogDataset(Dataset):
     """Vicuna의 학습 방법을 따라서 챗봇의 발화를 제외한 텍스트는 masking하는 데이터셋입니다."""
 
-    def __init__(self, fp: str, tokenizer: PreTrainedTokenizerFast, split:str="train"):
+    def __init__(
+        self, fp: str, tokenizer: PreTrainedTokenizerFast, split: str = "train"
+    ):
         if os.path.isdir(fp):
-            raw_data=load_from_disk(fp)
+            raw_data = load_from_disk(fp)
         else:
-            raw_data=load_dataset(fp)
+            raw_data = load_dataset(fp)
 
         self.data = []
         conv = get_default_conv_template()
@@ -97,6 +103,8 @@ class VicunaDialogDataset(Dataset):
                 target += parts[1]
 
             target += [IGNORE_TOKEN_ID] * (tokenizer.model_max_length - len(target))
+            target = target[: tokenizer.model_max_length]  # truncation
+
             tokens = tokenizer.prepare_for_model(
                 input_ids,
                 return_tensors="pt",
