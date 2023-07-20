@@ -5,10 +5,14 @@ from typing import List, Tuple
 NUMBERS = re.compile(r"(?=\d+)[\d,]*")
 
 # 만, 천 등의 단위와 결합된 숫자와 매칭됩니다. ex) 3만 4천
-NUMBERS_WITH_TEXT = re.compile(r"(?:(?=\d+)[\d,]*\s*[만천백]\s*)+")
+NUMBERS_WITH_TEXT = re.compile(r"(?:(?=\d+)[\d,이삼사오육칠팔구]*\s*[억만천백십]+\s*)+")
+
+# # 삼천만(원), 이만(원), 등 텍스트로만 이루어진 숫자 매칭합니다.
+# ONE2THOUSAND=r"[[이삼사오육칠팔구]?[천백십]?]*"
+# TEXT_EXPRESSION_NUMBER = re.compile(fr"[{ONE2THOUSAND}억]?\s+?[{ONE2THOUSAND}만]?\s+?[{ONE2THOUSAND}?]?원?")
 
 # 숫자 없이 만, 천 등의 단위로만 구성된 숫자와 매칭됩니다. "원"이 붙어야지만 매칭됩니다. ex)천만원
-NO_NUMBER_PRICE = re.compile(r"(?<!\d)(?<!\d\s)(?:[만천백]\s?)+(?=원)")
+NO_NUMBER_PRICE = re.compile(r"(?<!\d)(?<!\d\s)(?:[이삼사오육칠팔구]?[억만천백십]\s?)+(?=원)")
 
 # 숫자와 결합될 수 있는 금액이 아닌 단위의 모음입니다.
 # 안정적으로 금액만 뽑기 위해 아래 단위가 붙으면 금액으로 고려하지 않습니다.
@@ -17,7 +21,7 @@ unwanted_units = (
     "년", "월", "개월", "일", "시", "분", "초",  # 시간
     "테라", "기가", "메가", "헥토", "키로", "킬로", "센티", "센치", "데시", "밀리", "미리", "마이크로", "나노",  # 단위
     "번", "회",  # 횟수
-    "개", "송이", "매",  # 갯수
+    "개", "매", "송이", "그루",  # 갯수
     "파운드", "온스", "그램", "그람", "되", "홉", "톤",  # 무게
     "동", "호", "층",  # 주소
     "인치", "피트", "마일", "미터",  # 거리
@@ -28,10 +32,10 @@ unwanted_units = (
     "짝", "쪽", 
     "코어", 
     "점", 
-    "마력", 
+    "마력", "기통", "륜",
     # "근", 
     # "장", 
-    # "퍼센트", "퍼", "%" # 깎아주세요, 할인해주세요, 빼주세요와 함께 활용 가능
+    # "퍼센트", "퍼", "프로", "%" # 깎아주세요, 할인해주세요, 빼주세요와 함께 활용 가능
 )
 # fmt :on
 
@@ -122,12 +126,24 @@ def price_to_int(price: str) -> int:
     """
     price = price.strip()
     price = price.replace(",", "")
+    price = price.replace(" ", "")
     price = re.sub(r"(?<!\d)0", "", price)
     if not price:
         return 0
-    price = price.replace("만", "* 10000 +")
+    price = price.replace("일", "1")
+    price = price.replace("이", "2")
+    price = price.replace("삼", "3")
+    price = price.replace("사", "4")
+    price = price.replace("오", "5")
+    price = price.replace("육", "6")
+    price = price.replace("칠", "7")
+    price = price.replace("팔", "8")
+    price = price.replace("구", "9")
+
     price = price.replace("천", "* 1000 +")
     price = price.replace("백", "* 100 +")
+    price = price.replace("십", "* 10 +")
+    price = price.replace("만", "* 10000 +")
 
     price = re.sub(r"\+\s*\*", "*", price)
     if price[0] == "*":
