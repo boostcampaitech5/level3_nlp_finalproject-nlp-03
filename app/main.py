@@ -181,7 +181,8 @@ async def chatting(request: Request, product_id: int, name: str = Query(None), p
     if "score" in form_data.keys():
         score = form_data["score"]
         current_user = db.query(User).filter(User.username==name).first()
-        current_user.score = score  
+        chat = db.query(Chat).filter(and_(Chat.user == current_user, Chat.product_id==product_id)).order_by(Chat.created_at.desc()).first()
+        chat.score = score  
         return RedirectResponse(url="/", status_code=303)
     
     if "text" in form_data.keys():

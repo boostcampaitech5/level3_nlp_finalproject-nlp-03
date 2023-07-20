@@ -31,6 +31,7 @@ def load_chatData(last_created:Optional[datetime]=None):
                          "title" : chat.product.title,
                          "description" : chat.product.description,
                          "price" : float(chat.product.price),
+                         "score" : chat.score,
                          "event" : events}
         dialogue_dataset.append(dialogue_data)
 
