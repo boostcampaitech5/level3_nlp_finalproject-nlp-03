@@ -34,6 +34,11 @@
         <input type="text" id="text" name="text" placeholder="메세지 입력">
         {% if messages|length>1 %}
         <button class="button" type="button" onclick="goToHomepage()">홈으로 이동</button>
+        <div>
+          <p>대화가 마음에 드십니까?</p>
+          <input type="submit" class="button" name="score" value="예">
+          <input type="submit" class="button" name="score" value="아니오">
+        </div>
         {% else %}
         <div id="loadingOverlay" style="display: none;">
           <div id="loadingSpinner">loading</div>
@@ -45,10 +50,14 @@
       </div>
     </form>
 
-    {% if messages|length>1 %}
+    {% if messages|length > 1 %}
     <script>const formButtons = document.querySelectorAll('#textForm input[type="text"], #textForm input[type="submit"]');
-    formButtons.forEach(button => {
-      button.disabled = true;
+    const buttonsToDisable = [0]; // 버튼을 비활성화(disable)하려는 인덱스 목록 : text button만 비활성화
+
+    formButtons.forEach((button, index) => {
+      if (buttonsToDisable.includes(index)) {
+        button.disabled = true;
+      }
     });</script>{% endif %}
     
     {% if messages %}

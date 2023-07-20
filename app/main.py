@@ -177,9 +177,16 @@ async def chatting(request: Request, product_id: int, name: str = Query(None), p
     logger.info(f'{request.method} "{request.url.path}" - {request.client}')
     messages = []
     form_data = await request.form()
+    
+    if "score" in form_data.keys():
+        score = form_data["score"]
+        current_user = db.query(User).filter(User.username==name).first()
+        current_user.score = score  
+        return RedirectResponse(url="/", status_code=303)
+    
     if "text" in form_data.keys():
         input_text = form_data["text"]
-
+        
     try:
         product = db.query(Product).filter(Product.id == product_id).first()
         current_user = db.query(User).filter(User.username==name).first()
