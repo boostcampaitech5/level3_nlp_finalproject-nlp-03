@@ -34,16 +34,10 @@
         <input type="text" id="text" name="text" placeholder="메세지 입력">
         {% if messages|length>1 %}
         <button class="button" type="button" onclick="goToHomepage()">홈으로 이동</button>
-        <div>
-          <p>대화가 마음에 드십니까?</p>
-          <input type="submit" class="button" name="score" value="예">
-          <input type="submit" class="button" name="score" value="아니오">
-        </div>
         {% else %}
         <div id="loadingOverlay" style="display: none;">
           <div id="loadingSpinner">loading</div>
         </div>
-
         <input id="submit" type="submit" value="입력" onclick="showLoading()">
         <button id="offer" class="button" type="button" onclick="openPopup()">최종가격 제시</button>
       {% endif %}
