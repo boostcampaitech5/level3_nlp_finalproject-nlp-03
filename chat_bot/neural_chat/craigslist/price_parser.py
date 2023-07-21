@@ -2,26 +2,21 @@ import re
 from typing import List, Tuple
 
 # 숫자와 매칭됩니다. ex) 34000, 34,000
-NUMBERS = re.compile(r"(?=\d+)[\d,]*")
-
+NUMBERS=re.compile(r"₩?\s*(?=\d+)[\d,]*\s*[원₩]?")
 # 만, 천 등의 단위와 결합된 숫자와 매칭됩니다. ex) 3만 4천
-NUMBERS_WITH_TEXT = re.compile(r"(?:(?=\d+)[\d,이삼사오육칠팔구]*\s*[억만천백십]+\s*)+")
-
-# # 삼천만(원), 이만(원), 등 텍스트로만 이루어진 숫자 매칭합니다.
-# ONE2THOUSAND=r"[[이삼사오육칠팔구]?[천백십]?]*"
-# TEXT_EXPRESSION_NUMBER = re.compile(fr"[{ONE2THOUSAND}억]?\s+?[{ONE2THOUSAND}만]?\s+?[{ONE2THOUSAND}?]?원?")
-
+# 3.5만 | 2.5억 | 8.5천 | 3.2마넌 | 5.7 처넌 <- 숫자와 원/원화기호 모두 match
+NUMBERS_WITH_TEXT = re.compile(r"₩?\s*(?=[\d일이삼사오육칠팔구십백천만억])(([.,\d일이삼사오육칠팔구]*[천백십]?)+억)?\s*(([.,\d일이삼사오육칠팔구]*[천백십]?)+(만|마넌))?\s*([.,\d일이삼사오육칠팔구]*(천|처넌))?\s*([.,\d]+백)?\s*([.,\d]+십)?\s*[원₩]?")
 # 숫자 없이 만, 천 등의 단위로만 구성된 숫자와 매칭됩니다. "원"이 붙어야지만 매칭됩니다. ex)천만원
-NO_NUMBER_PRICE = re.compile(r"(?<!\d)(?<!\d\s)(?:[이삼사오육칠팔구]?[억만천백십]\s?)+(?=원)")
+# NO_NUMBER_PRICE = re.compile(r"₩?\s*(?=[일이삼사오육칠팔구십백천만억])([일이삼사오육칠팔구]?[억만천백십]\s*)+[원₩]?")
 
 # 숫자와 결합될 수 있는 금액이 아닌 단위의 모음입니다.
 # 안정적으로 금액만 뽑기 위해 아래 단위가 붙으면 금액으로 고려하지 않습니다.
 # fmt: off
-unwanted_units = (
+NOT_MONEY_UNITS = (
     "년", "월", "개월", "일", "시", "분", "초",  # 시간
     "테라", "기가", "메가", "헥토", "키로", "킬로", "센티", "센치", "데시", "밀리", "미리", "마이크로", "나노",  # 단위
     "번", "회",  # 횟수
-    "개", "매", "송이", "그루",  # 갯수
+    "개", "매", "송이", "그루", "명", "병",  # 갯수
     "파운드", "온스", "그램", "그람", "되", "홉", "톤",  # 무게
     "동", "호", "층",  # 주소
     "인치", "피트", "마일", "미터",  # 거리
@@ -31,6 +26,7 @@ unwanted_units = (
     "제곱", "세제곱", 
     "짝", "쪽", 
     "코어", 
+    "토큰",
     "점", 
     "마력", "기통", "륜",
     # "근", 
@@ -38,14 +34,20 @@ unwanted_units = (
     # "퍼센트", "퍼", "프로", "%" # 깎아주세요, 할인해주세요, 빼주세요와 함께 활용 가능
 )
 # fmt :on
+ENG_GREEK_LETTERS = re.compile(r"[a-zA-Z\u0370-\u03FF].*$") # 영어 알파벳 & 그리스문자 (모든 단위 배제)
 
-# 1000원만 빼주세요와 같이 할인을 요구하는 상황을 이해하기 위해 사용합니다.
-discount_prefixes = ("깎", "빼")
+# 비율을 나타내는 표현
+PERCENTAGE = re.compile(r"\d{1,3}\s*(퍼(센트)?|%)") # 10프로 <- 아이패드 10프로 가능하므로 제외함.
+HALPUNRI = re.compile(r"(\d\s*할)?\s*(\d\s*푼)?\s*(\d\s*리)?") # 주의 : '' match 가능하므로 '' 를 return하는 경우 제거해야
+FRACTIONAL = re.compile(r"(\d+|[일이삼사오육칠팔구십백천만]+)+\s*분의\s*(\d+|[일이삼사오육칠팔구십백천만]+)+")
+
+# 할인을 암시하는 표현
+DISCOUNT = ["에누리", "에눌", "할인", "세일", "네고", "깎", "빼"]
 
 
 def parse_wanted_price(
     role: str, text: str, seller_wanted_price: int, buyer_wanted_price: int
-):
+) -> int:
     """
     role을 고려해서 text에서 원하는 금액을 추출합니다.
     금액을 찾지 못하면 -1을 반환합니다.
@@ -82,32 +84,48 @@ def parse_prices(
     """
     text = text.lower()
     matches = []
-    eng_greek_letter = re.compile(r"[a-zA-Z\u0370-\u03FF].*$") # 영어 알파벳 & 그리스문자 (모든 단위 배제)
 
-    for match in NUMBERS.finditer(text):
-        if eng_greek_letter.match(text[match.end() :].lstrip()):
+    matches.extend(list(NUMBERS.finditer(text)))
+    matches.extend(list(NUMBERS_WITH_TEXT.finditer(text)))
+    # matches.extend(list(NO_NUMBER_PRICE.finditer(text)))
+    matches.sort(key=lambda match: match.span()) # index 순으로 정렬
+    print(matches)
+    # 숫자 match된 문자열에서 가격 아닌거 거르기
+    filtered_matches=[]
+    for match in matches:
+        if re.match(r'^\s*$',match.group()):
+            # 공백만 매치되는 케이스 거르기
+            continue
+        elif ENG_GREEK_LETTERS.match(text[match.end() :].lstrip()):
             continue # 영어는 무조건 단위로 간주함.
-        elif text[match.end() :].lstrip().startswith(unwanted_units):
+        elif text[match.end() :].lstrip().startswith(NOT_MONEY_UNITS):
             continue # 금액이 아닌 단위가 붙은 숫자라면 고려하지 않음.
-        matches.append(match)
-    for match in NUMBERS_WITH_TEXT.finditer(text):
-        if eng_greek_letter.match(text[match.end() :].lstrip()):
-            continue # 영어는 무조건 단위로 간주함.
-        elif text[match.end() :].lstrip().startswith(unwanted_units):
-            continue # 금액이 아닌 단위가 붙은 숫자라면 고려하지 않음.
-        matches.append(match)
-    for match in NO_NUMBER_PRICE.finditer(text):
-        matches.append(match)
+        elif len(filtered_matches)>0:
+            if filtered_matches[-1].start()==match.start():
+                filtered_matches.pop()
+                filtered_matches.append(match)
+            elif filtered_matches[-1].end()==match.end():
+                continue
+            elif filtered_matches[-1].end()>match.start():
+                print(filtered_matches[-1].span(), match.span())
+                raise ValueError
+        filtered_matches.append(match)
+    print(filtered_matches)
 
-    prices = [price_to_int(match.group()) for match in matches]
+    prices = [price_to_int(match.group()) for match in filtered_matches]
     final_prices = []
     final_matches = []
-    for price, match in zip(prices, matches):
-        if price < ref_price * bottom_ratio and any_string_in(["깎", "빼"], text):
-            # 원래 가격이 20000원인데, 1000원만 깎아달라고 하면 19000원을 의도한 것으로 간주합니다.
-            final_prices.append(ref_price - price)
+    for price, match in zip(prices, filtered_matches):
+        # if price < ref_price * bottom_ratio and any_string_in(DISCOUNT, text):
+        #     # 원래 가격이 20000원인데, 1000원만 깎아달라고 하면 19000원을 의도한 것으로 간주합니다.
+        #     final_prices.append(ref_price - price)
+        #     final_matches.append(match)
+        if (price < ref_price * bottom_ratio or price > ref_price * ceil_ratio) and re.search(r'[원₩]', match.group()):
+            # price가 하한선보다 작거나, 상한선보다 크더라도 가격을 나타내는 [원, ₩] 가 붙어있으면 추가
+            final_prices.append(price)
             final_matches.append(match)
         elif price < ref_price * bottom_ratio or price > ref_price * ceil_ratio:
+            # 그 외에 범위를 벗어나는 케이스는 모두 없애기
             continue
         else:
             final_prices.append(price)
@@ -124,34 +142,55 @@ def price_to_int(price: str) -> int:
     """
     3만 5천과 같이 숫자와 단위가 결합된 경우, 35000으로 원래 숫자를 반환합니다.
     """
-    price = price.strip()
+    int_price = 0
     price = price.replace(",", "")
     price = price.replace(" ", "")
+    price = price.replace("원", "")
+    price = price.replace("₩", "")
+    price = price.replace("처넌", "천")
+    price = price.replace("마넌", "만")
     price = re.sub(r"(?<!\d)0", "", price)
-    if not price:
+
+    if '억' in price:
+        eok, price = price.split('억')
+        if eok=='':
+            int_price += 100000000
+        else:
+            eok = str2int_under10k(eok) * 100000000
+            int_price += int(eok)
+    if '만' in price:
+        man, price = price.split('만')
+        if man=='':
+            int_price += 10000
+        else:
+            man = str2int_under10k(man) * 10000
+            int_price += int(man)
+    int_price += str2int_under10k(price)
+    return int(int_price)
+
+
+def str2int_under10k(num: str) -> float:
+    """0 ~ 9999까지의 숫자표현을 int로 변환"""
+    if len(num)==0:
         return 0
-    price = price.replace("일", "1")
-    price = price.replace("이", "2")
-    price = price.replace("삼", "3")
-    price = price.replace("사", "4")
-    price = price.replace("오", "5")
-    price = price.replace("육", "6")
-    price = price.replace("칠", "7")
-    price = price.replace("팔", "8")
-    price = price.replace("구", "9")
-
-    price = price.replace("천", "* 1000 +")
-    price = price.replace("백", "* 100 +")
-    price = price.replace("십", "* 10 +")
-    price = price.replace("만", "* 10000 +")
-
-    price = re.sub(r"\+\s*\*", "*", price)
-    if price[0] == "*":
-        price = price[1:]
-    if price[-1] == "+":
-        price = price[:-1]
-
-    return int(eval(price))
+    n2i={c:i for i,c in enumerate("일이삼사오육칠팔구",1)}
+    place2i={"천":1000, "백":100, "십":10}
+    if re.match(r"^\d[.\d]+$",num):
+        return float(num)
+    total = 0
+    for place in "천백십":
+        if place in num:
+            # 1.2천 2천 
+            n, num = num.split(place)
+            if n=='':
+                total+=place2i[place]
+            else:
+                if re.match(r"^\d[.\d]*$",n):
+                    total += float(n)*place2i[place]
+                elif not n.isnumeric():
+                    # str -> int
+                    total=n2i[n]*place2i[place] # 올바르지 않은 입력이면 key error 발생가능성
+    return total
 
 
 def any_string_in(strings: List[str], text: str) -> bool:
