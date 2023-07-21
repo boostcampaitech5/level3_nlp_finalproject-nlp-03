@@ -97,7 +97,10 @@ h2.List {
 }
 
 .product-list .product-button {
+  width:120px;
+  height: 60px;
   padding: 10px 20px;
+  font-size: 20px;
   background-color: #333;
   color: white;
   border: none;
