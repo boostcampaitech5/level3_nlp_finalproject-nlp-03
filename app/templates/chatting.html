@@ -48,6 +48,13 @@
         <button id="offer" class="button" type="button" onclick="openPopup()">최종가격 제시</button>
       {% endif %}
       </div>
+      {% if messages|length > 1 %}
+      <div>
+        <p>대화가 자연스러웠습니까?</p>
+        <input type="submit" class="button" name="score" value="예">
+        <input type="submit" class="button" name="score" value="아니오">
+        {% endif %}
+      </div>
     </form>
 
     {% if messages|length > 1 %}
