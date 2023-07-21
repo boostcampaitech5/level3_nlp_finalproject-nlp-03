@@ -3,14 +3,14 @@ import os
 import logging
 from logger import log
 import re 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from pathlib import Path
 path = Path(__file__).parent
 import uvicorn 
 import asyncio
 
-from fastapi import FastAPI, Request, Depends, HTTPException, Query
+from fastapi import FastAPI, Request, Depends, HTTPException, Query, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -72,7 +72,7 @@ async def main_view(request: Request, db: Session = Depends(get_db)):
     logger.info(f'{request.method} "{request.url.path}" - {request.client}')
 
     product_list = (
-        db.query(Product).order_by(Product.created_at.desc()).all()
+        db.query(Product).order_by(Product.created_at).all()
     )  # 최신순으로 정렬
     return templates.TemplateResponse(
         "index.html", {"request": request, "products": product_list}
@@ -109,7 +109,7 @@ async def signup(request: Request, db: Session = Depends(get_db)):
         return templates.TemplateResponse(
             "signup.html", {"request": request, "messages": ["이미 존재하는 이름입니다."]}
         )
-    new_user = User(username=username)
+    new_user = User(username=username,created_at=datetime.now(timezone(timedelta(hours=9))))
     db.add(new_user)
     db.commit()
 
@@ -160,7 +160,7 @@ async def get_chatting(
     
     new_chat = Chat(
         content="",
-        created_at=datetime.now(),
+        created_at=datetime.now(timezone(timedelta(hours=9))),
         user=current_user,
         product=product,
     )
@@ -191,7 +191,7 @@ async def chatting(request: Request, product_id: int, name: str = Query(None), p
         elif price is not None and price.isdigit() and int(price) > product.price:
             messages.append(f"{price}원에 구매할 수 없습니다.")
         elif price is not None:
-            chat.content += f"구매자:##{price}##\n"
+            chat.content += f"구매자:##<{price}>##\n"
             response = requests.post(url=URL, headers=HEADERS, json=convert_to_json(chat))
             reply = response.json()['text']
             if str(response.status_code).startswith('4'):
@@ -221,7 +221,7 @@ async def chatting(request: Request, product_id: int, name: str = Query(None), p
             db.commit()
     except Exception as e:
          print("APP:", e)
-         raise HTTPException(status_code = 404, detail= "Out of Memory")
+         raise HTTPException(status_code = 404, detail= f"Out of Memory")
 
     chats = chat.content.strip().split("\n")
     return templates.TemplateResponse(
@@ -272,11 +272,57 @@ async def feedback_form(request:Request, db: Session = Depends(get_db)):
     form_data = await request.form()
     feedback = form_data['feedback'] # str
     ## feedback 저장
-    db.add(Feedback(feedback=feedback))
+    db.add(Feedback(feedback=feedback, created_at=datetime.now(timezone(timedelta(hours=9)))))
     db.commit()
     return templates.TemplateResponse(
     "index.html", {"request": request}
 )
+
+@app.get("/upload")
+async def item_upload(request:Request):
+    logger.info(f'{request.method} "{request.url.path}" - {request.client}')
+    return templates.TemplateResponse(
+    "item-upload.html", {"request": request}
+)
+
+@app.post("/upload")
+async def item_upload(request:Request, image: UploadFile = File(...), db: Session = Depends(get_db)):
+    logger.info(f'{request.method} "{request.url.path}" - {request.client}')
+    form_data = await request.form()
+    messages = []
+    try: 
+        if form_data['price'].isdigit():
+            with open(os.path.join(path, f"static/images/{image.filename}"), "wb") as f:
+                f.write(image.file.read())
+            db.add(Product(title=form_data['title'],
+                        description=form_data['description'],
+                        price=form_data['price'],
+                        image=image.filename,
+                        created_at=datetime.now(timezone(timedelta(hours=9)))
+                        ))
+            db.commit()
+            messages.append('uploading..')
+    except Exception as e:
+        print(e)
+        
+    return templates.TemplateResponse(
+        "item-upload.html", {"request": request, "messages":messages}
+    )
+    
+@app.post("/delete")
+async def item_upload(request:Request, db: Session = Depends(get_db)):
+    logger.info(f'{request.method} "{request.url.path}" - {request.client}')
+    messages=[]
+    form_data = await request.form()
+    title = form_data['title'] 
+    product = db.query(Product).filter(Product.title==title).first()
+    if product is not None:
+        db.delete(product)
+        db.commit()
+        messages.append("delete...")
+    return templates.TemplateResponse(
+        "item-upload.html", {"request": request, "messages":messages}
+    )
 
 @app.get("/logs")
 async def read_logs():
@@ -293,7 +339,7 @@ class Server(uvicorn.Server):
 
 ## main 함수
 async def main():
-    server = Server(config=uvicorn.Config("main:app", workers=1, loop = "asyncio", host="0.0.0.0", port=8000))
+    server = Server(config=uvicorn.Config("main:app", workers=1, loop = "asyncio", host="0.0.0.0", port=80))
     api = asyncio.create_task(server.serve())
     sched = asyncio.create_task(app_rocketry.serve())
 
