@@ -6,7 +6,7 @@ sys.path.append("./")
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizerFast
 from transformers.trainer_pt_utils import LabelSmoother
-from chat_bot.neural_chat.conversation import get_default_conv_template
+from chat_bot.neural_chat.conversation import get_conv_template
 from typing import Dict
 from datasets import load_dataset, load_from_disk
 
@@ -24,13 +24,14 @@ class SimpleDialogDataset(Dataset):
         fp: str,
         tokenizer: PreTrainedTokenizerFast,
         split: str = "train",
+        conv_template_name: str = "default",
         block_size: int = 256,
     ):
         if os.path.isdir(fp):
             raw_data = load_from_disk(fp)
         else:
             raw_data = load_dataset(fp)
-        conv = get_default_conv_template()
+        conv = get_conv_template(conv_template_name)
         data = []
         for d in raw_data[split]:
             if d["events"][0]["role"] != conv.roles[0]:
@@ -60,7 +61,11 @@ class VicunaDialogDataset(Dataset):
     """Vicuna의 학습 방법을 따라서 챗봇의 발화를 제외한 텍스트는 masking하는 데이터셋입니다."""
 
     def __init__(
-        self, fp: str, tokenizer: PreTrainedTokenizerFast, split: str = "train"
+        self,
+        fp: str,
+        tokenizer: PreTrainedTokenizerFast,
+        split: str = "train",
+        conv_template_name: str = "default",
     ):
         if os.path.isdir(fp):
             raw_data = load_from_disk(fp)
@@ -68,14 +73,14 @@ class VicunaDialogDataset(Dataset):
             raw_data = load_dataset(fp)
 
         self.data = []
-        conv = get_default_conv_template()
+        conv = get_conv_template(conv_template_name)
         conversations = []
         for d in raw_data[split]:
             if d["events"][0]["role"] != conv.roles[0]:
                 d["events"] = d["events"][1:]
 
             conv.load_dict(d)
-            conversations.append(conv.get_prompt())
+            conversations.append(conv.get_prompt().strip())
 
         # target을 masking해서 챗봇의 발화에서만 loss를 계산합니다.
         sep = conv.sep + conv.roles[1] + ": "
@@ -127,5 +132,5 @@ if __name__ == "__main__":
 
     tokenizer = AutoTokenizer.from_pretrained("nlpai-lab/kullm-polyglot-12.8b-v2")
     tokenizer.model_max_length = 1024
-    ds = VicunaDialogDataset("ggul-tiger/negobot_cleaned_100", tokenizer, "train")
+    ds = VicunaDialogDataset("ggul-tiger/negobot_cleaned_100", tokenizer, "train", "v2")
     print(ds[0])
