@@ -1,14 +1,22 @@
 import re
 from typing import List, Tuple
 
-# # 숫자와 매칭됩니다. ex) 34000, 34,000
-# NUMBERS=re.compile(r"₩?\s*(?=\d+)[\d,]*\s*[원₩]?")
-# 만, 천 등의 단위와 결합된 숫자와 매칭됩니다. ex) 3만 4천
+# 숫자만 match
+MONEY_NUM = re.compile(r"(?=[1-9₩])(₩\s*)?\d[,\d]*\s*[원냥₩]?")
+
+# 10 부터 억까지의 단위와 결합된 숫자와 매칭됩니다. ex) 3만 4천
 # 3.5만 | 2.5억 | 8.5천 | 3.2마넌 | 5.7 처넌 <- 숫자와 원/원화기호 모두 match
 # 3만 5천원, 3만 오천
-MONEY_EXPRESSION = re.compile(r"(?=[\d일이삼사오육칠팔구십백천만억])₩?\s*((([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+억)?\s*(([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+(만|마넌))?\s*([\.\d일이삼사오육칠팔구]*(천|처넌))?\s*([\.\d일이삼사오육칠팔구]+백)?\s*([\.\d일이삼사오육칠팔구]+십)?|[\d,]+)\s*[원냥₩]?")
-# 숫자 없이 만, 천 등의 단위로만 구성된 숫자와 매칭됩니다. "원"이 붙어야지만 매칭됩니다. ex)천만원
-# NO_NUMBER_PRICE = re.compile(r"₩?\s*(?=[일이삼사오육칠팔구십백천만억])([일이삼사오육칠팔구]?[억만천백십]\s*)+[원₩]?")
+MONEY_TEXT = re.compile(r"(?<=[\s\t\r\f\n\v])(?=[\d일이삼사오육칠팔구십백천만억₩])(₩\s*)?(([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+억)?\s*(([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+(만|마넌))?\s*([\.\d일이삼사오육칠팔구]*(천|처넌))?\s*([\d이삼사오육칠팔구]+백)?\s*([\d이삼사오육칠팔구]+십)?(\s*[원냥₩])?")
+# (?<=[\s\t\r\f\n\v]) : 모든 종류의 빈칸에 대해 match
+# (?=[1-9일이삼사오육칠팔구십백천만억₩]) : 일단 숫자와 관련된 표현으로 시작해야 match 가능
+# (₩\s*)? : 원 기호로 시작되는 경우
+# (([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+억)?
+# (([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+(만|마넌))?
+# ([\.\d일이삼사오육칠팔구]*(천|처넌))?
+# ([\d이삼사오육칠팔구]+백)?
+# ([\d이삼사오육칠팔구]+십)?
+# (\s*[원냥₩])? : 끝에 올수도 있는 돈을 나타내는 말들
 
 # 숫자와 결합될 수 있는 금액이 아닌 단위의 모음입니다.
 # 안정적으로 금액만 뽑기 위해 아래 단위가 붙으면 금액으로 고려하지 않습니다.
@@ -24,6 +32,7 @@ NOT_MONEY_UNITS = (
     "평", "평방", "헥타르", "에이커",  # 너비
     "리터", "배럴", "갤런", "쿼트", "파인트",  # 부피
     "파스칼", "토르",  # 압력
+    "세", "살", # 나이
     "제곱", "세제곱", 
     "짝", "쪽", 
     "코어", 
@@ -36,6 +45,7 @@ NOT_MONEY_UNITS = (
 )
 # fmt :on
 ENG_GREEK_LETTERS = re.compile(r"[a-zA-Z\u0370-\u03FF].*$") # 영어 알파벳 & 그리스문자 (모든 단위 배제)
+SEARCH_DISCOUNT_WORD_UPTO=10
 
 # 비율을 나타내는 표현
 PERCENTAGE = re.compile(r"\d{1,3}\s*(퍼(센트)?|%)") # 10프로 <- 아이패드 10프로 가능하므로 제외함.
@@ -142,16 +152,13 @@ def parse_prices(
     숫자가 ref_price * bottom_ratio보다 작거나 ref_price * ceil_ratio보다 크다면,
     금액을 말하는 것이 아니라고 간주합니다.
     """
-    matches = list(MONEY_EXPRESSION.finditer(text))
-    # matches.extend(list(NUMBERS.finditer(text)))
-    # matches.extend(list(MONEY_EXPRESSION.finditer(text)))
-    # matches.extend(list(NO_NUMBER_PRICE.finditer(text)))
-    matches.sort(key=lambda match: match.span()) # index 순으로 정렬
+    price_matches = list(MONEY_TEXT.finditer(text)) + list(MONEY_NUM.finditer(text))
+    price_matches.sort(key=lambda match: match.span()) # index 순으로 정렬
     # print(matches)
 
     # 숫자 match된 문자열에서 가격 아닌거 거르기
-    valid_matches=[]
-    for match in matches:
+    valid_price_matches=[]
+    for match in price_matches:
         if re.match(r'^\s*$',match.group()):
             # 공백만 매치되는 케이스 거르기
             continue
@@ -159,44 +166,43 @@ def parse_prices(
             continue # 영어는 무조건 단위로 간주함.
         elif not bool(re.search(r"₩|원|냥",match.group())) and text[match.end() :].lstrip().startswith(NOT_MONEY_UNITS):
             continue # 금액이 아닌 단위가 붙은 숫자라면 고려하지 않음.
-        elif len(valid_matches)>0:
-            if valid_matches[-1].start()==match.start():
-                valid_matches.pop()
-            elif valid_matches[-1].end()==match.end():
+        elif len(valid_price_matches)>0:
+            if valid_price_matches[-1].start()==match.start():
+                valid_price_matches.pop()
+            elif valid_price_matches[-1].end()==match.end():
                 continue
-            elif valid_matches[-1].start()<=match.start() and valid_matches[-1].end()>=match.end():
+            elif valid_price_matches[-1].start()<=match.start() and valid_price_matches[-1].end()>=match.end():
                 continue
-            elif match.start()==valid_matches[-1].end() and valid_matches[-1].group()[-1] in "원냥":
-                print(valid_matches[-1])
+            elif match.start()==valid_price_matches[-1].end() and valid_price_matches[-1].group()[-1] in "원냥":
+                print(valid_price_matches[-1])
                 print(match)
-                raise ValueError(f"regex로 한번에 못잡고 각각 따로 잡혔음.\n{valid_matches}\n{match}")
-            elif match.start()>=valid_matches[-1].start() and valid_matches[-1].end()>=match.start():
-                print(valid_matches[-1])
+                raise ValueError(f"regex로 한번에 못잡고 각각 따로 잡혔음.\n{valid_price_matches}\n{match}")
+            elif match.start()>=valid_price_matches[-1].start() and valid_price_matches[-1].end()>=match.start():
+                print(valid_price_matches[-1])
                 print(match)
                 raise ValueError
-        valid_matches.append(match)
+        valid_price_matches.append(match)
     # print(filtered_matches)
 
-    prices = [price_to_int(match.group()) for match in valid_matches]
+    prices = [price_to_int(match.group()) for match in valid_price_matches]
     final_prices = []
     final_matches = []
-    for price, match in zip(prices, valid_matches):
-        # if price < ref_price * bottom_ratio and any_string_in(DISCOUNT, text):
-        #     # 원래 가격이 20000원인데, 1000원만 깎아달라고 하면 19000원을 의도한 것으로 간주합니다.
-        #     final_prices.append(ref_price - price)
-        #     final_matches.append(match)clf
+    for price, match in zip(prices, valid_price_matches):
         if (price < ref_price * bottom_ratio or price > ref_price * ceil_ratio):
+            # 범위를 벗어나는 경우
             if re.search(r'[원냥₩]', match.group()):
                 # price가 하한선보다 작거나, 상한선보다 크더라도 가격을 나타내는 [원, ₩] 가 붙어있으면 추가
                 final_prices.append(price)
                 final_matches.append(match)
-            elif CATCH_DISCOUNT and bool(re.search(DISCOUNT, text[match.end():match.end()+10])):
+            elif CATCH_DISCOUNT and bool(re.search(DISCOUNT, text[match.end():match.end()+SEARCH_DISCOUNT_WORD_UPTO])):
+                # 아직은 edge case 너무 많음
                 final_prices.append(ref_price-price)
                 final_matches.append(match)
             else:
                 # 그 외에 범위를 벗어나는 케이스는 모두 없애기
                 continue
         else:
+            # 범위 내의 금액은 그냥 append
             final_prices.append(price)
             final_matches.append(match)
 
@@ -284,6 +290,32 @@ def any_string_in(strings: List[str], text: str) -> bool:
     return any([text.find(string) != -1 for string in strings])
 
 
+def num2won(num:int)->str:
+    """int 형으로 parsing된 숫자를 한글 문자열로 만들어줍니다."""
+    units = [''] + list('만억')
+    nums = '일이삼사오육칠팔구'
+    tens = [''] + list('십백천')
+    result = []
+    i = 0
+    while num > 0:
+        num, n = divmod(num, 10000)
+        if n == 0:
+            result.append(units[i])
+        else:
+            res = []
+            for m in range(4):
+                n, a = divmod(n, 10)
+                if a == 0:
+                    continue
+                if m > 0:
+                    res.append(tens[m])
+                if a > 1 or m == 0:
+                    res.append(nums[a-1])
+            result.append(''.join(reversed(res)) + units[i])
+        i += 1
+    return ''.join(reversed(result))+"원"
+
+
 if __name__ == "__main__":
     import random
     import json
@@ -294,7 +326,7 @@ if __name__ == "__main__":
     for i in range(3):
         d = random.choice(data)
         listed_price = d["price"]
-        print(f"sample: {i + 1}")
+        print(f"\nsample: {i + 1}")
         for ev in d["events"]:
             print(f"utterance: {ev['role']}: {ev['message']}")
             print(
