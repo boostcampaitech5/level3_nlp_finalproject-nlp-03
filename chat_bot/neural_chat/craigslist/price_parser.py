@@ -1,22 +1,10 @@
 import re
 from typing import List, Tuple
 
-# 숫자만 match
-MONEY_NUM = re.compile(r"(?=[1-9₩])(₩\s*)?\d[,\d]*\s*[원냥₩]?")
-
-# 10 부터 억까지의 단위와 결합된 숫자와 매칭됩니다. ex) 3만 4천
-# 3.5만 | 2.5억 | 8.5천 | 3.2마넌 | 5.7 처넌 <- 숫자와 원/원화기호 모두 match
-# 3만 5천원, 3만 오천
-MONEY_TEXT = re.compile(r"(?<=[\s\t\r\f\n\v])(?=[\d일이삼사오육칠팔구십백천만억₩])(₩\s*)?(([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+억)?\s*(([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+(만|마넌))?\s*([\.\d일이삼사오육칠팔구]*(천|처넌))?\s*([\d이삼사오육칠팔구]+백)?\s*([\d이삼사오육칠팔구]+십)?(\s*[원냥₩])?")
-# (?<=[\s\t\r\f\n\v]) : 모든 종류의 빈칸에 대해 match
-# (?=[1-9일이삼사오육칠팔구십백천만억₩]) : 일단 숫자와 관련된 표현으로 시작해야 match 가능
-# (₩\s*)? : 원 기호로 시작되는 경우
-# (([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+억)?
-# (([\.,\d일이삼사오육칠팔구]*[천백십]?\s*)+(만|마넌))?
-# ([\.\d일이삼사오육칠팔구]*(천|처넌))?
-# ([\d이삼사오육칠팔구]+백)?
-# ([\d이삼사오육칠팔구]+십)?
-# (\s*[원냥₩])? : 끝에 올수도 있는 돈을 나타내는 말들
+# 10000보다 작은 수까지 match
+UNDER_10K=re.compile(r"(([\.,\d]*|[일이삼사오육칠팔구])(천|처넌)\s*)?(([\.,\d]*|[일이삼사오육칠팔구])백\s*)?(([\.,\d]*|[일이삼사오육칠팔구])십\s*)?(([\.,\d]*|[일이삼사오육칠팔구])\s*)?")
+# 억단위까지 match
+MONEY_TEXT = re.compile(r"((?<=^)|(?<=[\s\t\r\f\n\v]))(?=([\d일이삼사오육칠팔구십백천만억₩]|처넌|마넌))(₩\s*)?("+UNDER_10K.pattern+"억)?\s*("+UNDER_10K.pattern+"(만|마넌))?\s*"+UNDER_10K.pattern+"[원냥₩]?")
 
 # 숫자와 결합될 수 있는 금액이 아닌 단위의 모음입니다.
 # 안정적으로 금액만 뽑기 위해 아래 단위가 붙으면 금액으로 고려하지 않습니다.
@@ -152,7 +140,7 @@ def parse_prices(
     숫자가 ref_price * bottom_ratio보다 작거나 ref_price * ceil_ratio보다 크다면,
     금액을 말하는 것이 아니라고 간주합니다.
     """
-    price_matches = list(MONEY_TEXT.finditer(text)) + list(MONEY_NUM.finditer(text))
+    price_matches = list(MONEY_TEXT.finditer(text))
     price_matches.sort(key=lambda match: match.span()) # index 순으로 정렬
     # print(matches)
 
@@ -293,7 +281,6 @@ def any_string_in(strings: List[str], text: str) -> bool:
 def num2won(num:int)->str:
     """int 형으로 parsing된 숫자를 한글 문자열로 만들어줍니다."""
     units = [''] + list('만억')
-    nums = '일이삼사오육칠팔구'
     tens = [''] + list('십백천')
     result = []
     i = 0
@@ -310,7 +297,7 @@ def num2won(num:int)->str:
                 if m > 0:
                     res.append(tens[m])
                 if a > 1 or m == 0:
-                    res.append(nums[a-1])
+                    res.append(str(a))
             result.append(''.join(reversed(res)) + units[i])
         i += 1
     return ''.join(reversed(result))+"원"
