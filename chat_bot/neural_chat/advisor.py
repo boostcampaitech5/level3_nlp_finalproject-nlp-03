@@ -20,7 +20,7 @@ class Advisor:
         self.seller_bottom_price = (
             conv.scenario["seller_bottom_price"]
             if "seller_bottom_price" in conv.scenario.keys()
-            else int(0.8 * self.listed_price)
+            else int(0.3 * self.listed_price)
             # scenario에 bottom_price가 없는 경우 임의의 값으로 설정합니다.
         )
         self.desired_price["구매자"] = self.seller_bottom_price
