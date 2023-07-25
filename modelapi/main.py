@@ -4,12 +4,13 @@ from pathlib import Path
 import sys
 
 sys.path.append(Path(__file__).parent)
-from modelapi.load_model import load_model, convert_to_model_input
+from load_model import load_model, convert_to_model_input
 from datetime import datetime
 from transformers import GenerationConfig
-
+from logger import log
 path = Path(__file__).parent
 app = FastAPI()
+logger = log()
 
 # 전역 변수로 모델 선언
 model = None
@@ -32,7 +33,7 @@ def load_my_model():
         num_beams=3,
         temperature=0.9,
     )
-    print("MODEL LOAD DONE")
+    logger.info("INFO: Model Loading Complete")
 
 
 # FastAPI 앱 시작 시 모델 로드
@@ -55,6 +56,7 @@ async def h():
 # pretrained-model 작동
 @app.post("/model")
 async def get_model_output(request: Request):
+    logger.info(f"{request.headers.get('Date')}")
     data = await request.json()
     output = "hello"
     try:
@@ -68,4 +70,4 @@ async def get_model_output(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("modelapi.main:app", host="0.0.0.0", port=8800, reload=True)
+    uvicorn.run("modelapi.main:app", host="0.0.0.0", port=30007)

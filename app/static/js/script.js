@@ -10,7 +10,17 @@ function receiveMessage(event) {
     const receivedData = event.data;
     if (receivedData !== null) {
         const { id, text } = receivedData;
-        const url = `/chatting/${id}?name=${encodeURIComponent(text)}`;
+
+        // Check if id is a non-negative integer
+        const isIdValid = Number.isInteger(Number(id));
+
+        let url;
+        if (isIdValid) {
+            url = `/chatting/${id}?name=${encodeURIComponent(text)}`;
+        } else {
+            url = '/';
+        }
+
         window.location.href = url;
     }
 }

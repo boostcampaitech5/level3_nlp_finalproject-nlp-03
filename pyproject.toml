@@ -1,12 +1,16 @@
 [tool.poetry]
-name = "negobot"
+name = "app"
 version = "0.1.0"
 description = "Boostcamp AI tech NLP-03 final project. Chatbot specialized for bargain."
 authors = ["KimuGenie <baby11686@naver.com>","wontaek <dnjdsxor21@gmail.com>", "JSY <jsy98515@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
+<<<<<<< HEAD
+python = "^3.9"
+=======
 python = ">=3.9,<3.13"
+>>>>>>> fa25e5e1615684a3431fc396433dd9efb766605d
 sqlalchemy = "^2.0.18"
 fastapi = "^0.100.0"
 uvicorn = "^0.22.0"
@@ -27,6 +31,7 @@ accelerate = "^0.20.3"
 bitsandbytes = "^0.40.0.post4"
 gunicorn = "^20.1.0"
 nvidia-cusparse-cu11 = "^11.7.5.86"
+google-cloud-storage = "^2.10.0"
 scipy = "^1.11.1"
 datasets = "^2.13.1"
 

@@ -9,7 +9,7 @@ from pathlib import Path
 
 if __name__ == "__main__":
     db = SessionLocal()
-    with open(os.path.join(Path(__file__).parent, "sample_data.json"), 'r') as f:
+    with open(os.path.join(Path(__file__).parent, "key/sample_data.json"), 'r') as f:
         data = json.load(f)
 
     for user in data['user']:

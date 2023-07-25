@@ -9,9 +9,10 @@
 {% block content %}
 <div class="chatting">
     <div class="product-info">
-      <h3>title:{{ product.title }}</h3>
-      <p>desc:{{ product.description }}</p>
-      <p>price:{{ product.price }}</p>
+      <!--<img src="/static/images/{{product.image}}" alt="product-image">-->
+      <h3>제목: {{ product.title }}</h3>
+      <p>설명: {{ product.description }}</p>
+      <p>가격: {{ product.price }} 원</p>
     </div>
 
 
@@ -25,16 +26,75 @@
     {% endfor %}
     {% endif %}
 
-    <form method="POST" action="{{ url_for('get_chatting', product_id=product.id)}}?name={{username}}" autocomplete="off">
+    
+
+    <form id="textForm" method="POST" action="{{ url_for('get_chatting', product_id=product.id)}}?name={{username}}" autocomplete="off">
       <div>
-          <span>{{username}}</span>
-          <input type="text" id="text" name="text" placeholder="메세지 입력">
-          <input type="submit" value="입력">
-      </div>
-      <div>
-          <p>나가려면 "끝" 이라고 입력</p>
+        <span>{{username}}</span>
+
+        <input type="text" id="text" name="text" placeholder="메세지 입력">
+        {% if messages|length>1 %}
+        <button class="button" type="button" onclick="goToHomepage()">홈으로 이동</button>
+        {% else %}
+        <div id="loadingOverlay" style="display: none;">
+          <div id="loadingSpinner">loading</div>
+        </div>
+
+        <input id="submit" type="submit" value="입력" onclick="showLoading()">
+        <button id="offer" class="button" type="button" onclick="openPopup()">최종가격 제시</button>
+      {% endif %}
       </div>
     </form>
+
+    {% if messages|length>1 %}
+    <script>const formButtons = document.querySelectorAll('#textForm input[type="text"], #textForm input[type="submit"]');
+    formButtons.forEach(button => {
+      button.disabled = true;
+    });</script>{% endif %}
+    
+    {% if messages %}
+  <div id="messageDiv" class="messages">{{ messages[0] }}</div>
+{% endif %}
+
+    <!-- 팝업 창에서 price를 입력하고 POST 요청을 보내는 스크립트 -->
+    <script>
+      const messageDiv = document.querySelector('#messageDiv');
+  if (messageDiv) {
+    alert(messageDiv.textContent);
+  }
+      function openPopup() {
+        const price = prompt("최종가격을 제안하면 거래가 종료됩니다.\n최종가격을 제안하세요(int):");
+        if (price !== null) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = `{{ url_for('get_chatting', product_id=product.id)}}?name={{username}}&price=${encodeURIComponent(price)}`;
+          form.style.display = 'none';
+          document.body.appendChild(form);
+          form.submit();
+        }
+      }
+      function goToHomepage() {
+    window.location.href = '/';
+  }
+    </script>
+
+    <script>
+      function showLoading() {
+        var form = document.getElementById("textForm");
+        var loadingOverlay = document.getElementById("loadingOverlay");
+        var textInput = document.getElementById("text");
+        var submitInput = document.getElementById("submit");
+        var offerBtn = document.getElementById("offer");
+        
+        // // Show the loading message
+        loadingOverlay.style.display = "block";
+        // textInput.style.display = "none";
+        submitInput.style.display = "none";
+        offerBtn.style.display = "none";
+        form.submit();
+      }
+    </script>
+  
 </div>
 {% endblock %}
 

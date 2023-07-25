@@ -2,12 +2,14 @@
 {% block content %}
 <div class="feedback">
     <div class="center-container">
+        <img src="static/images/ggul-tiger.jpeg" alt="ggul-tiger">
         <h2>서비스에 대한 Feedback을 남겨주세요!</h2>
         <form id="feedbackForm" method="POST" action="/feedback" autocomplete="off">
             <div>
-                <input type="text" id="feedback" name="feedback" placeholder="내용">
+                <textarea id='feedback' name="feedback" cols="10" rows="5"></textarea>
+                <!--<input type="text" id="feedback" name="feedback" placeholder="내용">-->
             </div>
-            <div>
+            <div class="button">
                 <input type="submit" value="제출">
             </div>
         </form>
@@ -25,5 +27,10 @@
             
             feedbackForm.submit();
         });
+        document.getElementById("feedbackForm").addEventListener("keydown", function(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+        }
+    });
     </script>
 {% endblock %}

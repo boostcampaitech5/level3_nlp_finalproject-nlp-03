@@ -5,6 +5,13 @@ body {
   background-color: #f8f8f8;
 }
 
+.bottom {
+  color:#b4b4b4;
+  text-align: center;
+  text-decoration: none;
+  margin: 2px;
+}
+
 h1.Title {
   text-align: center;
   margin-top: 20px;
@@ -21,6 +28,7 @@ h2.List {
   text-decoration: none;
 }
 
+/* nav */
 .nav {
   display: flex;
   flex-direction: row;
@@ -76,6 +84,7 @@ h2.List {
   width: 200px;
   height: 200px;
   object-fit: cover;
+  border: 1px solid silver;
 }
 
 .product-list .product-details {
@@ -88,7 +97,10 @@ h2.List {
 }
 
 .product-list .product-button {
+  width:120px;
+  height: 60px;
   padding: 10px 20px;
+  font-size: 20px;
   background-color: #333;
   color: white;
   border: none;
@@ -99,14 +111,18 @@ h2.List {
   background-color: #555;
 }
 
-/* 기타 스타일 및 커스터마이즈할 부분은 여기에 추가 가능 */
 
-/* style.css */
+/* chatting */
+.chatting .messages {
+  color: white;
+  font-size:small;
+}
+
 .chatting .product-info {
   max-width: 800px;
   margin: 20px auto;
   padding: 20px;
-  background-color: white;
+  background-color: #FAFAD2;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -155,39 +171,78 @@ h2.List {
   background-color: #555;
 }
 
-/* 기타 스타일 및 커스터마이즈할 부분은 여기에 추가 가능 */
-
-
-
-
-
-
-
-.error p {
-  color: red;
-  font-size:small;
+.chatting #textForm .button {
+  height: 30px;
+  padding: 0 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px; /* 간격을 주기 위해 추가 */
 }
 
+.chatting #textForm .button:hover {
+  background-color: #555;
+}
+
+/* ranking */
+.ranking .user {
+  margin-bottom: 20px;
+  text-align: center;
+  margin: 1px;
+}
+
+.ranking button.button {
+  height: 30px;
+  padding: 0 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px; /* 간격을 주기 위해 추가 */
+}
+
+.ranking button.button:hover {
+  background-color: #555;
+}
+
+/* feedback */
 #feedback {
   width: 600px;
   height: 300px;
   text-align: left;
   vertical-align: top;
 }
+
 .feedback {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 90vh;
   margin: 0;
+}
+.feedback .button input{
+  height: 30px;
+  padding: 0 15px;
+  background-color: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px; 
+}
+
+.feedback .center-container img {
+  width: 300px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .center-container {
   text-align: center;
 }
 
-
-
+/* signup */
 .signup form {
   max-width: 400px;
   margin: 0 auto;
@@ -230,8 +285,55 @@ h2.List {
 
 
 
-.ranking .user {
-  margin-bottom: 20px;
+/* about */
+.about {
+  width: 80%;
+  max-width: 800px;
+  margin: 50px auto;
+  background-color: #fff;
+  padding: 20px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.about .team {
   text-align: center;
+  margin-bottom: 20px;
+}
+.about .team img {
+  width: 300px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.about .team h3 {
+  font-size: 1.5em;
+  margin-top: 10px;
+}
+
+.about .project {
+  border-top: 1px solid #ccc;
+  padding-top: 20px;
+}
+
+.about .project h3 {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.about .project p {
+  margin-bottom: 10px;
+}
+
+/* loading on chatting */
+#loadingOverlay {
   margin: 1px;
+}
+
+#loadingSpinner {
+  border: 4px solid orange;
+  border-top: 4px solid #ffffff;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
 }

@@ -1,8 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Numeric  
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float  
 from sqlalchemy.orm import relationship
 
 from database import Base 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # db init
 # $ alembic init migrations
@@ -18,15 +18,17 @@ class Product(Base):
     description = Column(Text, nullable=False)
     image = Column(String, default='no_image.jpeg')
     price = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.now())
+    created_at = Column(DateTime, nullable=True)
 
 class User(Base):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True)
     username = Column(String, nullable=False, unique=True)
-    money = Column(Integer, default=100)
-    created_at = Column(DateTime, default=datetime.now())
+    
+    point = Column(Float, default=0.0)
+
+    created_at = Column(DateTime, nullable=True)
 
 class Chat(Base):
     __tablename__ = "chat"
@@ -34,7 +36,7 @@ class Chat(Base):
     id = Column(Integer, primary_key=True)
     
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.now())
+    created_at = Column(DateTime, nullable=True)
 
     user_id = Column(Integer, ForeignKey("user.id"))
     user = relationship("User", backref="chats")
@@ -47,4 +49,4 @@ class Feedback(Base):
 
     id = Column(Integer, primary_key=True)
     feedback = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.now())
+    created_at = Column(DateTime, nullable=True)

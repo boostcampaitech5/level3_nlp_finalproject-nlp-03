@@ -9,12 +9,12 @@
   {% for product in products %}
   <div class="product">
     <div class="product-image">
-      <img src="/static/images/{{ product.image }}" alt="{{ product.title }}">
+        <img src="/static/images/{{ product.image }}" alt="{{ product.title }}">
     </div>
     <div class="product-details">
       <h3>{{ product.title }}</h3>
       <p>{{ product.description }}</p>
-      <p>가격:{{ product.price }}만원</p>
+      <p>가격: {{ product.price }} 원</p>
       <button class="product-button" data-product-id="{{ product.id }}">입장</button>
     </div>
   </div>

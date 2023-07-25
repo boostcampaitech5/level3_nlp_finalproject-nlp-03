@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block subtitle %}
+<h2 class="List">아이템 등록 / 삭제</h2>
+{% endblock %} 
+
+{% block content %}
+<div class="item-upload">
+  <form method="POST" action="/upload" autocomplete="off" enctype="multipart/form-data">
+    <div>
+        <p> upload </p>
+        <div><input type="text" name="title" placeholder="title"></div>
+        <div><textarea  name="description" cols="10" rows="5" placeholder="description"></textarea></div>
+        <div><input type="text" name="price" placeholder="price"></div>
+        <div><input type="file" name="image"></div>
+      </div>
+    <div>
+        <input type="submit" value="upload">
+    </div>
+  </form>
+</div>
+
+<div class="item-delete">
+  <form method="POST" action="/delete" autocomplete="off">
+    <div>
+      <p> delete </p>
+        <input type="text" name="title" placeholder="title">
+    </div>
+    <div>
+        <input type="submit" value="delete">
+    </div>
+  </form>
+</div>
+{% if messages %}<script>alert("{{ messages[0] }}");</script>{% endif %}
+
+{% endblock %}
