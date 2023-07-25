@@ -6,9 +6,9 @@ sys.path.append("./")
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizerFast
 from transformers.trainer_pt_utils import LabelSmoother
-from chat_bot.neural_chat.conversation import get_default_conv_template
+from chat_bot.neural_chat.conversation import get_conv_template
 from typing import Dict
-from datasets import load_dataset, load_from_disk
+import datasets
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
@@ -20,15 +20,15 @@ class SimpleDialogDataset(Dataset):
     """
 
     def __init__(
-        self, fp: str, tokenizer: PreTrainedTokenizerFast, split:str="train", block_size: int = 256
+        self,
+        raw_dataset: Dataset,
+        tokenizer: PreTrainedTokenizerFast,
+        conv_template_name: str = "default",
+        block_size: int = 256,
     ):
-        if os.path.isdir(fp):
-            raw_data=load_from_disk(fp)
-        else:
-            raw_data=load_dataset(fp)
-        conv = get_default_conv_template()
+        conv = get_conv_template(conv_template_name)
         data = []
-        for d in raw_data[split]:
+        for d in raw_dataset:
             if d["events"][0]["role"] != conv.roles[0]:
                 d["events"] = d["events"][1:]
 
@@ -55,21 +55,21 @@ class SimpleDialogDataset(Dataset):
 class VicunaDialogDataset(Dataset):
     """Vicuna의 학습 방법을 따라서 챗봇의 발화를 제외한 텍스트는 masking하는 데이터셋입니다."""
 
-    def __init__(self, fp: str, tokenizer: PreTrainedTokenizerFast, split:str="train"):
-        if os.path.isdir(fp):
-            raw_data=load_from_disk(fp)
-        else:
-            raw_data=load_dataset(fp)
-
-        self.data = []
-        conv = get_default_conv_template()
+    def __init__(
+        self,
+        raw_dataset: datasets.Dataset,
+        tokenizer: PreTrainedTokenizerFast,
+        conv_template_name: str = "default",
+    ):
+        self._data = []
+        conv = get_conv_template(conv_template_name)
         conversations = []
-        for d in raw_data[split]:
+        for d in raw_dataset:
             if d["events"][0]["role"] != conv.roles[0]:
                 d["events"] = d["events"][1:]
 
             conv.load_dict(d)
-            conversations.append(conv.get_prompt())
+            conversations.append(conv.get_prompt().strip())
 
         # target을 masking해서 챗봇의 발화에서만 loss를 계산합니다.
         sep = conv.sep + conv.roles[1] + ": "
@@ -97,6 +97,8 @@ class VicunaDialogDataset(Dataset):
                 target += parts[1]
 
             target += [IGNORE_TOKEN_ID] * (tokenizer.model_max_length - len(target))
+            target = target[: tokenizer.model_max_length]  # truncation
+
             tokens = tokenizer.prepare_for_model(
                 input_ids,
                 return_tensors="pt",
@@ -105,19 +107,24 @@ class VicunaDialogDataset(Dataset):
                 return_token_type_ids=False,
             )
             tokens["labels"] = torch.tensor(target)
-            self.data.append(tokens)
+            self._data.append(tokens)
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def __getitem__(self, index):
-        return self.data[index]
+        return self._data[index]
 
 
 if __name__ == "__main__":
     from transformers import AutoTokenizer
+    from datasets import load_dataset
 
     tokenizer = AutoTokenizer.from_pretrained("nlpai-lab/kullm-polyglot-12.8b-v2")
     tokenizer.model_max_length = 1024
-    ds = VicunaDialogDataset("ggul-tiger/negobot_cleaned_100", tokenizer, "train")
-    print(ds[0])
+
+    ds = load_dataset("ggul-tiger/negobot_361_weakcase_injected")
+    ds = VicunaDialogDataset(ds["train"], tokenizer, "v2")
+    
+    for d in ds[:5]:
+        print(tokenizer.decode(d['input_ids'],skip_special_tokens=True))

@@ -14,7 +14,10 @@ class Advisor:
         initialize될 때, 자동으로 모든 conversation을 읽어서 구매자와 판매자의 희망 가격을 찾습니다.
         """
         self.eos_token = conv.sep2
-        self.listed_price = conv.scenario["price"]
+        if isinstance(conv.scenario["price"], str):
+            self.listed_price = int(re.sub(r"[^\d]+", "", conv.scenario["price"]))
+        else:
+            self.listed_price = int(conv.scenario["price"])
         self.desired_price = dict()
         self.desired_price["판매자"] = self.listed_price
         self.seller_bottom_price = (
@@ -66,13 +69,7 @@ class Advisor:
         if re.match(r"##<\d+>##", buyer_message):
             # 마지막으로 합의된 가격보다 낮은 가격이 제시된 경우
             if price < self.desired_price[self.last_nego_agent]:
-                return random.choice(
-                    [
-                        f"죄송하지만, 저희가 합의한 가격과 다른 것 같습니다.{self.eos_token}",
-                        f"저희가 합의했던 가격과 다른 것 같은데요? 다시 확인해주세요.{self.eos_token}",
-                        f"금액을 다시 확인해주시겠어요? 합의했던 금액과 다른 것 같습니다.{self.eos_token}",
-                    ]
-                )
+                return f"##<거절>##{self.eos_token}"
             # 판매자가 원했던 가격에 제안이 들어온 경우.
             elif price >= self.desired_price["판매자"]:
                 return f"##<수락>##{self.eos_token}"
@@ -88,18 +85,22 @@ class Advisor:
         if price < self.seller_bottom_price:
             return random.choice(
                 [
-                    "죄송하지만, 제가 생각한 가격보다 너무 낮네요. ",
-                    "그렇게 낮은 가격에 드리기는 어려워요. ",
-                    "제시하신 금액이 너무 낮아요. ",
+                    "죄송하지만, 제가 생각한 가격보다 너무 낮네요. 제가 생각하는 가격은 ",
+                    "그렇게 낮은 가격에 드리기는 어려워요. 제가 생각했던 가격은 ",
+                    "제시하신 가격이 너무 낮아요. 제가 생각하고 있는 가격은 ",
+                    f"{price}원은 너무 낮아요. 저는 최소한 ",
+                    f"죄송하지만 {price}원에 드리긴 어렵네요. 제가 생각하는 가격은 ",
                 ]
             )
         # 구매자가 이전에 제시했던 금액보다 더 낮은 금액을 제시한 경우.
         elif price < self.desired_price["구매자"]:
             return random.choice(
                 [
-                    "죄송하지만 더 깎아드릴 순 없어요.",
+                    "죄송하지만 더 깎아드릴 순 없어요. ",
                     "가격을 더 내려드리진 못해요. ",
-                    "이전에 합의한 금액보다 더 낮은 금액은 안 돼요.",
+                    "이전에 합의한 금액보다 더 낮은 금액은 안 돼요. ",
+                    "죄송하지만, 더 깎아드리긴 어려워요. ",
+                    "이전보다 낮은 금액에 판매하긴 어려워요. ",
                 ]
             )
 
@@ -113,11 +114,12 @@ class Advisor:
             return message
 
         for price, match in zip(reversed(prices), reversed(matches)):
-            # 구매자가 제시한 금액보다 낮은 금액 금액을 제시하거나, 처음 판매가격보다 높은 가격을 제시한 경우
-            if price < self.desired_price["구매자"] or price > self.listed_price:
+            # 합의된 가격보다 높은 가격을 제시한 경우
+            if price > self.desired_price["판매자"]:
                 message = (
                     message[: match.start()]
                     + str(self.desired_price["판매자"])
+                    + "원"
                     + message[match.end() :]
                 )
 

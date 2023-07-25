@@ -1,79 +1,69 @@
-from neural_chat.craigslist import *
+import sys
+sys.path.append(".")
+from chat_bot.neural_chat.craigslist.price_parser import parse_prices, price_to_int
+from unittest import TestCase
+import unittest
 
+def num2kor(num:int):
+    units = [''] + list('만억조')
+    nums = '일이삼사오육칠팔구'
+    tens = [''] + list('십백천')
+    result = []
+    i = 0
+    while num > 0:
+        num, n = divmod(num, 10000)
+        if n == 0:
+            result.append(units[i])
+        else:
+            res = []
+            for m in range(4):
+                n, a = divmod(n, 10)
+                if a == 0:
+                    continue
+                if m > 0:
+                    res.append(tens[m])
+                if a > 1 or m == 0:
+                    res.append(nums[a-1])
+            result.append(''.join(reversed(res)) + units[i])
+        i += 1
+    return ''.join(reversed(result))
 
-def test_parser():
-    dialog1 = [
-        "how about we settle on $750?",
-        "how about 2,300?",
-        "how about 2.3k?",
-        "$2300 is too low, how about $2,200?",
-        "I give you the extremely low price of 23.34",
-        "No price here",
-    ]
+class TestParsePrice(TestCase):
+    def test_parse_prices(self):
+        self.assertEqual(parse_prices("삼천만원은 너무 비싼데요? 50프로만 깎아줘요",30000000,0.5,2)[0],[30000000])
+        self.assertEqual(parse_prices("마넌에 사고싶어요",10000,0.5,2)[0],[10000])
+        self.assertEqual(parse_prices("그냥 오처넌에 헤주세요",5000,0.5,2)[0],[5000])
+        self.assertEqual(parse_prices("삼처넌",3000,0.5,2)[0],[3000])
+        self.assertEqual(parse_prices("3천만원은 너무 비싼데요?",30000000,0.5,2)[0],[30000000])
+        self.assertEqual(parse_prices("삼천만원은 너무 비싼데요?",30000000,0.5,2)[0],[30000000])
+        self.assertEqual(parse_prices("삼천육백만원은 너무 비싼데요?",36000000,0.5,2)[0],[36000000])
+        self.assertEqual(parse_prices("3000은 어떠세요?",3000,0.5,2)[0],[3000])
+        self.assertEqual(parse_prices("오처넌에 해주시면 안돼요?",5000,0.5,2)[0],[5000])
+        self.assertEqual(parse_prices("10마넌",100000,0.5,2)[0],[100000])
+        self.assertEqual(parse_prices("1억 3000만원에 살게여",130000000,0.5,2)[0],[130000000])
+        self.assertEqual(parse_prices("₩5,000",5000,0.5,2)[0],[5000])
+        
+    def test_price2int(self):
+        self.assertEqual(price_to_int(f"천만"),10000000)
+        self.assertEqual(price_to_int(f"백만"),1000000)
+        self.assertEqual(price_to_int(f"십만"),100000)
+        self.assertEqual(price_to_int(f"만"),10000)
+        self.assertEqual(price_to_int(f"천"),1000)
+        self.assertEqual(price_to_int(f"백"),100)
+        self.assertEqual(price_to_int(f"십"),10)
+        for i in range(1,10):
+            self.assertEqual(price_to_int(f"{i}천만"),i*10000000)
+            self.assertEqual(price_to_int(f"{i}백만"),i*1000000)
+            self.assertEqual(price_to_int(f"{i}십만"),i*100000)
+            self.assertEqual(price_to_int(f"{i}만"),i*10000)
+            self.assertEqual(price_to_int(f"{i}천"),i*1000)
+            self.assertEqual(price_to_int(f"{i}백"),i*100)
+            self.assertEqual(price_to_int(f"{i}십"),i*10)
+        self.assertEqual(price_to_int("3천 5백"),3500)
+        self.assertEqual(price_to_int("3천 5백만"),35000000)
+        
+        # for i in range(1,100000000):
+        #     self.assertEqual(price_to_int(num2kor(i)),i)
 
-    prices = [
-        [Token("$750", 750.0)],
-        [Token("2,300", 2300.0)],
-        [Token("2.3k", 2300.0)],
-        [Token("$2300", 2300.0), Token("$2,200", 2200.0)],
-    ]
-    for d, ps in zip(dialog1, prices):
-        assert [t for t in parse_prices(1000, d) if t.price != None] == ps
-
-
-def test_price_parser():
-    dialog = [
-        "Hi! How are you doing",
-        "I'm doing good, how are you",
-        "Good, I was looking to buy the house for 900",
-        "900 is too low, how about 950",
-        "Let's meet in the middle and say 925",
-        "deal. I'll come to pick it up at 3?",
-        "Yes, sounds good!",
-    ]
-    outputs = [
-        (None, None, "Hi! How are you doing"),
-        (None, None, "I'm doing good, how are you"),
-        (900.0, None, "Good, I was looking to buy the house for $PRICE"),
-        (900.0, 950.0, "$PARTNER_PRICE is too low, how about $PRICE"),
-        (925.0, 950.0, "Let's meet in the middle and say $PRICE"),
-        (925.0, 950.0, "deal. I'll come to pick it up at 3?"),
-        (925.0, 950.0, "Yes, sounds good!"),
-    ]
-    pp = PriceParser(1000)
-    agent = Agent.BUYER
-    for d, out in zip(dialog, outputs):
-        data = pp.update_event(agent=agent, event=Message(d))
-        assert data == PriceData.from_agent(agent, *out)
-        agent = agent.other_agent()
-    assert pp.update_event(agent=Agent.BUYER, event=Offer(500)) == PriceData(
-        500.0, 950.0, "offer"
-    )
-    assert pp.update_event(agent=Agent.SELLER, event=Accept()) == PriceData(
-        500.0, 500.0, "deal"
-    )
-
-
-def test_price_parser_2():
-    dialog = [
-        "hello",
-        "how about $40?",
-        "how about $1.00?",
-        "no lets do $35.00",
-        "deal",
-        "i offer $25",
-    ]
-    outputs = [
-        (None, None, "hello"),
-        (None, 40.0, "how about $PRICE?"),
-        (1.0, 40.0, "how about $PRICE?"),
-        (1.0, 35.0, "no lets do $PRICE"),
-        (1.0, 35.0, "deal"),
-        (1.0, 25.0, "i offer $PRICE"),
-    ]
-    pp = PriceParser(list_price=50.0)
-    agent = Agent.BUYER
-    for d, out in zip(dialog, outputs):
-        data = pp.update_event(agent=agent, event=Message(d))
-        assert data == PriceData.from_agent(agent, *out)
-        agent = agent.other_agent()
+if __name__=="__main__":
+    unittest.main()

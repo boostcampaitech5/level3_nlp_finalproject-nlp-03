@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("./")
 from chat_bot.neural_chat.e2emodel.e2e_lora_model import E2ELoRA
-from chat_bot.neural_chat.conversation import get_default_conv_template
+from chat_bot.neural_chat.conversation import get_conv_template
 from transformers import GenerationConfig
 import argparse
 import torch
@@ -15,9 +15,11 @@ def rollout(
     model: E2ELoRA,
     scenario: Dict,
     gen_config: GenerationConfig,
+    conv_template_name: str,
 ):
-    conv = get_default_conv_template()
-    conv.scenario = {k: scenario[k] for k in conv.scenario_key_mapping.keys()}
+    conv = get_conv_template(conv_template_name)
+    conv.load_dict(scenario)
+    conv.messages = []
     print(conv.get_scenario())
     while True:
         user_input = input()
@@ -40,11 +42,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-path", required=True)
     parser.add_argument("--model_checkpoint_path", required=True)
+    parser.add_argument("--conv-template-name", default="v2")
     parser.add_argument("--num-rollouts", type=int, default=30)
     args = parser.parse_args()
 
     gen_config = GenerationConfig(
-        # min_new_tokens=2,
         max_new_tokens=128,
         use_cahce=True,
         early_stopping=True,
@@ -64,4 +66,4 @@ if __name__ == "__main__":
     for i in range(args.num_rollouts):
         print(f"rollout #{i + 1}")
         scenario = random.choice(data)
-        rollout(model, scenario, gen_config)
+        rollout(model, scenario, gen_config, args.conv_template_name)
