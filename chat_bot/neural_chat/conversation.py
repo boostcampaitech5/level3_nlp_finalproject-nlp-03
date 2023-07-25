@@ -105,7 +105,7 @@ class Conversation:
     )
     max_token: int = 1024
 
-    hangeul_price: bool = True
+    hangeul_price: bool = False
     desired_price: Dict = field(default_factory=dict)
 
     def get_prompt(self) -> str:
@@ -139,6 +139,8 @@ class Conversation:
             info_list = [
                 f"[{v}] {num2won(self.scenario[k])}"
                 if k == "price" and self.hangeul_price else
+                f"[{v}] {self.scenario[k]}원"
+                if k == "price" else
                 f"[{v}] {self.scenario[k]}"
                 for k, v in self.scenario_key_mapping.items()
             ]
@@ -146,6 +148,8 @@ class Conversation:
             info_list = [
                 f"{v}: {num2won(self.scenario[k])}"
                 if k == "price" and self.hangeul_price else
+                f"{v}: {self.scenario[k]}원"
+                if k == "price" else
                 f"{v}: {self.scenario[k]}"
                 for k, v in self.scenario_key_mapping.items()
             ]

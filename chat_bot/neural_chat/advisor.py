@@ -23,7 +23,7 @@ class Advisor:
         self.seller_bottom_price = (
             conv.scenario["seller_bottom_price"]
             if "seller_bottom_price" in conv.scenario.keys()
-            else int(0.8 * self.listed_price)
+            else int(0.4 * self.listed_price)
             # scenario에 bottom_price가 없는 경우 임의의 값으로 설정합니다.
         )
         self.desired_price["구매자"] = self.seller_bottom_price
@@ -85,22 +85,22 @@ class Advisor:
         if price < self.seller_bottom_price:
             return random.choice(
                 [
-                    "죄송하지만, 제가 생각한 가격보다 너무 낮네요. 제가 생각하는 가격은 ",
-                    "그렇게 낮은 가격에 드리기는 어려워요. 제가 생각했던 가격은 ",
-                    "제시하신 가격이 너무 낮아요. 제가 생각하고 있는 가격은 ",
-                    f"{price}원은 너무 낮아요. 저는 최소한 ",
-                    f"죄송하지만 {price}원에 드리긴 어렵네요. 제가 생각하는 가격은 ",
+                    f"죄송하지만, 제가 생각한 가격보다 너무 낮네요. 제가 설정한 가격이 {self.listed_price}원 인 것을 감안해주세요.",
+                    f"그렇게 낮은 가격에 드리기는 어려워요. 제가 설정한 가격이 {self.listed_price}원입니다.",
+                    f"제시하신 가격이 너무 낮아요. 제가 설정한 가격이 {self.listed_price}원 인 것을 감안해주세요.",
+                    f"제가 설정한 가격이 {self.listed_price}원 인 것을 감안하면, {price}원은 너무 낮아요.",
+                    f"죄송하지만 {price}원에 드리긴 어렵네요. 제가 설정한 가격이 {self.listed_price}원 인 것을 감안해주세요.",
                 ]
             )
         # 구매자가 이전에 제시했던 금액보다 더 낮은 금액을 제시한 경우.
         elif price < self.desired_price["구매자"]:
             return random.choice(
                 [
-                    "죄송하지만 더 깎아드릴 순 없어요. ",
-                    "가격을 더 내려드리진 못해요. ",
-                    "이전에 합의한 금액보다 더 낮은 금액은 안 돼요. ",
-                    "죄송하지만, 더 깎아드리긴 어려워요. ",
-                    "이전보다 낮은 금액에 판매하긴 어려워요. ",
+                    "죄송하지만 더 깎아드릴 순 없어요.",
+                    "가격을 더 내려드리진 못해요.",
+                    "이전에 합의한 금액보다 더 낮은 금액은 안 돼요.",
+                    "죄송하지만, 더 깎아드리긴 어려워요.",
+                    "이전보다 낮은 금액에 판매하긴 어려워요.",
                 ]
             )
 
