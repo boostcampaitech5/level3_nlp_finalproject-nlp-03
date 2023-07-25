@@ -42,16 +42,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-path", required=True)
     parser.add_argument("--model_checkpoint_path", required=True)
-    parser.add_argument("--conv-template-name", default="default")
+    parser.add_argument("--conv-template-name", default="v2")
     parser.add_argument("--num-rollouts", type=int, default=30)
     args = parser.parse_args()
 
-    args.data_path = (
-        "/opt/ml/level3_nlp_finalproject-nlp-03/data/annotated_train_361.json"
-    )
-    args.model_checkpoint_path = "/opt/ml/level3_nlp_finalproject-nlp-03/chat_bot/logs/kullm-polyglot-12.8b-361-weak-v3/checkpoint-33"
     gen_config = GenerationConfig(
-        # min_new_tokens=2,
         max_new_tokens=128,
         use_cahce=True,
         early_stopping=True,
@@ -60,7 +55,6 @@ if __name__ == "__main__":
         top_p=0.85,
         num_beams=3,
         temperature=0.9,
-        length_penalty=2.0,
     )
 
     device = "cuda" if torch.cuda.is_available() else "cpu"

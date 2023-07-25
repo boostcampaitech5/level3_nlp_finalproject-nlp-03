@@ -2,9 +2,19 @@ import re
 from typing import List, Tuple
 
 # 10000보다 작은 수까지 match
-UNDER_10K=re.compile(r"(([\.,\d]*|[일이삼사오육칠팔구])(천|처넌)\s*)?(([\.,\d]*|[일이삼사오육칠팔구])백\s*)?(([\.,\d]*|[일이삼사오육칠팔구])십\s*)?(([\.,\d]*|[일이삼사오육칠팔구])\s*)?")
+UNDER_10K = re.compile(
+    r"(([\.,\d]*|[일이삼사오육칠팔구])(천|처넌)\s*)?(([\.,\d]*|[일이삼사오육칠팔구])백\s*)?(([\.,\d]*|[일이삼사오육칠팔구])십\s*)?(([\.,\d]*|[일이삼사오육칠팔구])\s*)?"
+)
 # 억단위까지 match
-MONEY_TEXT = re.compile(r"((?<=^)|(?<=[\s\t\r\f\n\v]))(?=([\d일이삼사오육칠팔구십백천만억₩]|처넌|마넌))(₩\s*)?("+UNDER_10K.pattern+"억)?\s*("+UNDER_10K.pattern+"(만|마넌))?\s*"+UNDER_10K.pattern+"[원냥₩]?")
+MONEY_TEXT = re.compile(
+    r"((?<=^)|(?<=[\s\t\r\f\n\v]))(?=([\d일이삼사오육칠팔구십백천만억₩]|처넌|마넌))(₩\s*)?("
+    + UNDER_10K.pattern
+    + "억)?\s*("
+    + UNDER_10K.pattern
+    + "(만|마넌))?\s*"
+    + UNDER_10K.pattern
+    + "[원냥₩]?"
+)
 
 # 숫자와 결합될 수 있는 금액이 아닌 단위의 모음입니다.
 # 안정적으로 금액만 뽑기 위해 아래 단위가 붙으면 금액으로 고려하지 않습니다.
@@ -101,7 +111,7 @@ def match_ratio(text:str)->Tuple[List[float], List[re.Match]]:
 
 # 할인을 암시하는 표현
 DISCOUNT = re.compile(r"(에누리|에눌|할인|세일|네고|깎|깍|빼)")
-CATCH_DISCOUNT=False
+CATCH_DISCOUNT=True
 
 def parse_wanted_price(
     role: str, text: str, seller_wanted_price: int, buyer_wanted_price: int
@@ -115,19 +125,23 @@ def parse_wanted_price(
     if role == "구매자":
         if re.match(r"##<\d+>##", text):
             return int(text[3:-3])
-        price_list, _ = parse_prices(text, buyer_wanted_price, 0.3, 2)
-        if not price_list:
-            return -1
-        min_price = min(price_list)
-        if min_price >= seller_wanted_price:
-            return -1  # ex: 5만원은 너무 비싸요.
-        return min_price
-    if role == "판매자":
         price_list, _ = parse_prices(text, seller_wanted_price, 0.3, 2)
         if not price_list:
             return -1
+        if len(price_list) == 1 and any_string_in(["비싸", "비싼", "높", "부담"], text):
+            return -1
+        min_price = min(price_list)
+        if min_price > seller_wanted_price:
+            return -1
+        return min_price
+    if role == "판매자":
+        price_list, _ = parse_prices(text, buyer_wanted_price, 0.3, 2)
+        if not price_list:
+            return -1
+        if len(price_list) == 1 and any_string_in(["죄송", "낮"], text):
+            return -1
         max_price = max(price_list)
-        if max_price < buyer_wanted_price:  # ex: 5만원에 판매할 순 없습니다.
+        if max_price < buyer_wanted_price:
             return -1
         return max_price
 
@@ -180,15 +194,13 @@ def parse_prices(
             # 범위를 벗어나는 경우
             if re.search(r'[원냥₩]', match.group()):
                 # price가 하한선보다 작거나, 상한선보다 크더라도 가격을 나타내는 [원, ₩] 가 붙어있으면 추가
-                final_prices.append(price)
-                final_matches.append(match)
-            elif CATCH_DISCOUNT and bool(re.search(DISCOUNT, text[match.end():match.end()+SEARCH_DISCOUNT_WORD_UPTO])):
-                # 아직은 edge case 너무 많음
-                final_prices.append(ref_price-price)
-                final_matches.append(match)
-            else:
-                # 그 외에 범위를 벗어나는 케이스는 모두 없애기
-                continue
+                if CATCH_DISCOUNT and bool(re.search(DISCOUNT, text[match.end():match.end()+SEARCH_DISCOUNT_WORD_UPTO])):
+                    # 아직은 edge case 너무 많음
+                    final_prices.append(ref_price-price)
+                    final_matches.append(match)
+                else:
+                    final_prices.append(price)
+                    final_matches.append(match)
         else:
             # 범위 내의 금액은 그냥 append
             final_prices.append(price)
