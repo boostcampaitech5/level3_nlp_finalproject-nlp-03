@@ -197,7 +197,7 @@ async def chatting(request: Request, product_id: int, name: str = Query(None), p
             if str(response.status_code).startswith('4'):
                 raise Exception("404")
             reply = re.sub(r"[^\w]", "", reply)
-            # chat.content = re.sub(r"##(\d+)##", r"\1원에 구매하겠습니다.", chat.content)
+            chat.content = re.sub(r"##\<(\d+)\>##", r"\1원에 구매하겠습니다.", chat.content)
             chat.content += f"판매자:{reply}\n"
             if '수락' in reply:
                 point = (1.0 - float(price) / product.price) * 100
