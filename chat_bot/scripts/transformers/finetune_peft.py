@@ -37,10 +37,14 @@ def train(args):
     tokenizer.model_max_length = args.max_length
 
     # 입력할 Dataset load해오기
-    ds1 = load_dataset("ggul-tiger/dealing_term")
-    ds2 = load_dataset("ggul-tiger/negobot_361_weakcase_injected")
-    #여러개 사용하는 경우 Dataset concat 하기
-    merged_ds = concatenate_datasets([ds1["train"],ds1["single_turn"],ds2["train"]])
+    ds_list = []
+    for ds_name in args.train_dataset_names:
+        dataset_dict = load_dataset(ds_name)
+        for split in dataset_dict.keys():
+            ds_list.append(dataset_dict[split])
+
+    # 여러개 사용하는 경우 Dataset concat 하기
+    merged_ds = concatenate_datasets(ds_list)
 
     # make dataset
     if args.dataset_type == "simple":
@@ -140,8 +144,13 @@ def train(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--train-fp",
-        default="ggul-tiger/negobot_361_weakcase_injected",
+        "--train-dataset-names",
+        nargs="+",
+        default=[
+            "ggul-tiger/negobot_361_weakcase_injected",
+            "ggul-tiger/negobot_userdata",
+        ],
+        help="list of dataset names. use as --train-dataset-names ds1 ds2",
     )
 
     parser.add_argument(
