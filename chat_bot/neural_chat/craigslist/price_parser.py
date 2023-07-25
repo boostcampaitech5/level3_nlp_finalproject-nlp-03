@@ -31,8 +31,9 @@ NOT_MONEY_UNITS = (
     "리터", "배럴", "갤런", "쿼트", "파인트",  # 부피
     "파스칼", "토르",  # 압력
     "세", "살", # 나이
+    "퍼", "프로", "%", "/", "할", "푼", "리", # 비율
     "제곱", "세제곱", 
-    "짝", "쪽", 
+    "짝", "쪽",                                       
     "코어", 
     "토큰",
     "점", 
@@ -179,7 +180,7 @@ def parse_prices(
                 print(valid_price_matches[-1])
                 print(match)
                 raise ValueError(f"regex로 한번에 못잡고 각각 따로 잡혔음.\n{valid_price_matches}\n{match}")
-            elif match.start()>=valid_price_matches[-1].start() and valid_price_matches[-1].end()>=match.start():
+            elif match.start()>=valid_price_matches[-1].start() and valid_price_matches[-1].end()>match.start():
                 print(valid_price_matches[-1])
                 print(match)
                 raise ValueError
@@ -314,6 +315,8 @@ def num2won(num:int)->str:
         i += 1
     return ''.join(reversed(result))+"원"
 
+def won2num(won: str):
+    return
 
 if __name__ == "__main__":
     import random

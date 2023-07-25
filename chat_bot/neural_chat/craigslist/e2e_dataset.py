@@ -8,7 +8,7 @@ from transformers import PreTrainedTokenizerFast
 from transformers.trainer_pt_utils import LabelSmoother
 from chat_bot.neural_chat.conversation import get_conv_template
 from typing import Dict
-from datasets import load_dataset, load_from_disk
+import datasets
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
@@ -21,19 +21,14 @@ class SimpleDialogDataset(Dataset):
 
     def __init__(
         self,
-        fp: str,
+        raw_dataset: Dataset,
         tokenizer: PreTrainedTokenizerFast,
-        split: str = "train",
         conv_template_name: str = "default",
         block_size: int = 256,
     ):
-        if os.path.isdir(fp):
-            raw_data = load_from_disk(fp)
-        else:
-            raw_data = load_dataset(fp)
         conv = get_conv_template(conv_template_name)
         data = []
-        for d in raw_data[split]:
+        for d in raw_dataset:
             if d["events"][0]["role"] != conv.roles[0]:
                 d["events"] = d["events"][1:]
 
@@ -62,20 +57,14 @@ class VicunaDialogDataset(Dataset):
 
     def __init__(
         self,
-        fp: str,
+        raw_dataset: datasets.Dataset,
         tokenizer: PreTrainedTokenizerFast,
-        split: str = "train",
         conv_template_name: str = "default",
     ):
-        if os.path.isdir(fp):
-            raw_data = load_from_disk(fp)
-        else:
-            raw_data = load_dataset(fp)
-
-        self.data = []
+        self._data = []
         conv = get_conv_template(conv_template_name)
         conversations = []
-        for d in raw_data[split]:
+        for d in raw_dataset:
             if d["events"][0]["role"] != conv.roles[0]:
                 d["events"] = d["events"][1:]
 
@@ -118,19 +107,24 @@ class VicunaDialogDataset(Dataset):
                 return_token_type_ids=False,
             )
             tokens["labels"] = torch.tensor(target)
-            self.data.append(tokens)
+            self._data.append(tokens)
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def __getitem__(self, index):
-        return self.data[index]
+        return self._data[index]
 
 
 if __name__ == "__main__":
     from transformers import AutoTokenizer
+    from datasets import load_dataset
 
     tokenizer = AutoTokenizer.from_pretrained("nlpai-lab/kullm-polyglot-12.8b-v2")
     tokenizer.model_max_length = 1024
-    ds = VicunaDialogDataset("ggul-tiger/negobot_cleaned_100", tokenizer, "train", "v2")
-    print(ds[0])
+
+    ds = load_dataset("ggul-tiger/negobot_361_weakcase_injected")
+    ds = VicunaDialogDataset(ds["train"], tokenizer, "v2")
+    
+    for d in ds[:5]:
+        print(tokenizer.decode(d['input_ids'],skip_special_tokens=True))

@@ -19,6 +19,7 @@ from peft import (
     PeftConfig,
     PeftModelForCausalLM,
 )
+from datasets import load_dataset, concatenate_datasets
 from chat_bot.neural_chat.craigslist.e2e_dataset import (
     SimpleDialogDataset,
     VicunaDialogDataset,
@@ -35,20 +36,24 @@ def train(args):
     tokenizer.pad_token = "<|sep|>"
     tokenizer.model_max_length = args.max_length
 
+    # 입력할 Dataset load해오기
+    ds1 = load_dataset("ggul-tiger/dealing_term")
+    ds2 = load_dataset("ggul-tiger/negobot_361_weakcase_injected")
+    #여러개 사용하는 경우 Dataset concat 하기
+    merged_ds = concatenate_datasets([ds1["train"],ds1["single_turn"],ds2["train"]])
+
     # make dataset
     if args.dataset_type == "simple":
         train_dataset = SimpleDialogDataset(
-            args.train_fp,
+            merged_ds,
             tokenizer=tokenizer,
-            split="train",
             conv_template_name=args.conv_template,
             block_size=256,
         )
     elif args.dataset_type == "vicuna":
         train_dataset = VicunaDialogDataset(
-            args.train_fp,
+            merged_ds,
             tokenizer=tokenizer,
-            split="train",
             conv_template_name=args.conv_template,
         )
     else:
@@ -144,7 +149,7 @@ if __name__ == "__main__":
         default="nlpai-lab/kullm-polyglot-12.8b-v2",
     )
     parser.add_argument("--dataset-type", default="vicuna")
-    parser.add_argument("--conv-template", default="default")
+    parser.add_argument("--conv-template", default="v2")
     parser.add_argument("--max-length", type=int, default=1024)
     parser.add_argument("--epoch", type=int, default=20)
     parser.add_argument("--max-steps", type=int, default=0)

@@ -1,6 +1,11 @@
 import dataclasses
 from typing import List, Dict, Optional, Union
 from transformers import PreTrainedTokenizer, AutoTokenizer
+from dataclasses import dataclass, field
+import re
+import sys
+sys.path.append("./")
+from chat_bot.neural_chat.craigslist.price_parser import parse_prices, num2won
 
 
 def get_conv_template(template_name: str):
@@ -68,14 +73,14 @@ def get_simple_weak_conv_template():
 
 
 CONV_TEMPLATES = {
-    "dafault": get_default_conv_template,
+    "default": get_default_conv_template,
     "v2": get_v2_conv_template,
     "price_weak": get_price_weak_conv_template,
     "simple_weak": get_simple_weak_conv_template,
 }
 
 
-@dataclasses.dataclass
+@dataclass
 class Conversation:
     """프롬프트, 상품 판매 정보, 채팅 내역을 저장하는 클래스입니다."""
 
@@ -98,7 +103,10 @@ class Conversation:
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
         "nlpai-lab/kullm-polyglot-12.8b-v2"
     )
-    max_token: int = 2000
+    max_token: int = 1024
+
+    hangeul_price: bool = True
+    desired_price: Dict = field(default_factory=dict)
 
     def get_prompt(self) -> str:
         """Get the prompt for generation."""
@@ -129,17 +137,33 @@ class Conversation:
         """시나리오를 문자열로 반환합니다."""
         if self.scenario_format == "bracket":
             info_list = [
+                f"[{v}] {num2won(self.scenario[k])}"
+                if k == "price" and self.hangeul_price else
                 f"[{v}] {self.scenario[k]}"
                 for k, v in self.scenario_key_mapping.items()
             ]
         elif self.scenario_format == "colon":
             info_list = [
-                f"{v}: {self.scenario[k]}" for k, v in self.scenario_key_mapping.items()
+                f"{v}: {num2won(self.scenario[k])}"
+                if k == "price" and self.hangeul_price else
+                f"{v}: {self.scenario[k]}"
+                for k, v in self.scenario_key_mapping.items()
             ]
         return self.sep.join(info_list) + self.sep + self.sep
 
     def append_message(self, role: str, message: str):
         """새로운 메세지를 추가합니다."""
+        if self.hangeul_price:
+            try:
+                if role == "구매자" and re.match(r"##<\d+>##", message):
+                        message="##<"+num2won(int(message[3:-3]))+">##"
+                else:
+                    matched_prices, price_matches = parse_prices(message, self.desired_price[role], 0., 999999999)
+                    for price, match in zip(reversed(matched_prices),reversed(price_matches)):
+                        message=message[:match.start()]+num2won(price)+message[match.end():]
+            except Exception as e:
+                print(e)
+                
         self.messages.append([role, message])
 
     def update_last_message(self, message: str):
@@ -150,8 +174,8 @@ class Conversation:
         """format된 dict를 불러옵니다."""
         self.messages = []
         self.scenario = {k: formatted_dict[k] for k in self.scenario_key_mapping.keys()}
-        if "price" in self.scenario.keys():
-            self.scenario["price"] = f"{self.scenario['price']}원"
+        self.desired_price["판매자"] = self.scenario["price"]
+        self.desired_price["구매자"] = self.scenario["price"]*0.8
         for i, ev in enumerate(formatted_dict["events"]):
             assert self.roles[i % 2] == ev["role"], "구매자, 판매자 순서로 된 데이터를 입력해주세요."
             self.append_message(ev["role"], ev["message"])
