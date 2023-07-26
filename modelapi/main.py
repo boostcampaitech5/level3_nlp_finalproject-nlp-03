@@ -56,7 +56,6 @@ async def h():
 # pretrained-model 작동
 @app.post("/model")
 async def get_model_output(request: Request):
-    logger.info(f"{request.headers.get('Date')}")
     data = await request.json()
     output = "hello"
     try:
