@@ -34,7 +34,7 @@ class E2ELoRA(torch.nn.Module):
             self.model = PeftModelForCausalLM.from_pretrained(
                 self.model, checkpoint_path
             )
-        self.model = self.model.to(self.device)
+            self.model = self.model.to(self.device)
         self.model.eval()
 
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
