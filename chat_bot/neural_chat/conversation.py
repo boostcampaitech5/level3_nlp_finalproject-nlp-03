@@ -43,6 +43,19 @@ def get_v2_conv_template():
         sep2="<|endoftext|>",
     )
 
+def get_v2_hangeul_conv_template():
+    """가격이 한글로 변환된 End to End 모델 훈련을 위한 버전 2 탬플릿입니다."""
+    return Conversation(
+        system="당신은 중고거래 판매자입니다. 판매자는 상품 가격과 구매자와 판매자가 제시한 가격을 참고해서 적절한 근거와 함께 합의 가격을 제시합니다.",
+        roles=["구매자", "판매자"],
+        scenario={},
+        scenario_key_mapping={"title": "제목", "description": "상품 설명", "price": "상품 가격"},
+        scenario_format="colon",
+        messages=[],
+        sep="\n",
+        sep2="<|endoftext|>",
+        hangeul_price=True
+    )
 
 def get_price_weak_conv_template():
     """가격과 관련된 weak case 훈련을 위한 탬플릿입니다."""
@@ -75,6 +88,7 @@ def get_simple_weak_conv_template():
 CONV_TEMPLATES = {
     "default": get_default_conv_template,
     "v2": get_v2_conv_template,
+    "v2-hangeul": get_v2_hangeul_conv_template,
     "price_weak": get_price_weak_conv_template,
     "simple_weak": get_simple_weak_conv_template,
 }
@@ -105,7 +119,7 @@ class Conversation:
     )
     max_token: int = 1024
 
-    hangeul_price: bool = True
+    hangeul_price: bool = False
     desired_price: Dict = field(default_factory=dict)
 
     def get_prompt(self) -> str:
@@ -139,6 +153,8 @@ class Conversation:
             info_list = [
                 f"[{v}] {num2won(self.scenario[k])}"
                 if k == "price" and self.hangeul_price else
+                f"[{v}] {self.scenario[k]}원"
+                if k == "price" else
                 f"[{v}] {self.scenario[k]}"
                 for k, v in self.scenario_key_mapping.items()
             ]
@@ -146,6 +162,8 @@ class Conversation:
             info_list = [
                 f"{v}: {num2won(self.scenario[k])}"
                 if k == "price" and self.hangeul_price else
+                f"{v}: {self.scenario[k]}원"
+                if k == "price" else
                 f"{v}: {self.scenario[k]}"
                 for k, v in self.scenario_key_mapping.items()
             ]
