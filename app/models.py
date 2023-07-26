@@ -44,7 +44,7 @@ class Chat(Base):
     product_id = Column(Integer, ForeignKey("product.id"))
     product = relationship("Product", backref="chats")
 
-    score = Column(Text, default="없음") 
+    score = Column(String, default='없음') 
 
 class Feedback(Base):
     __tablename__ = "feedback"

@@ -25,3 +25,10 @@ alembic upgrade head
 ```python
 python testdata.py
 ```
+
+---
+
+# Need Key directory
+- MONGODB accounts
+- gcloud accounts
+- sample_data
