@@ -56,6 +56,7 @@ async def h():
 # pretrained-model 작동
 @app.post("/model")
 async def get_model_output(request: Request):
+    logger.info(f"{request.headers.get('Date')}")
     data = await request.json()
     output = "hello"
     try:
@@ -69,4 +70,4 @@ async def get_model_output(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("modelapi.main:app", host="0.0.0.0", port=30007, reload=True)
+    uvicorn.run("modelapi.main:app", host="0.0.0.0", port=30007)
