@@ -13,6 +13,17 @@ NELLM(낼름)은 중고거래에서 판매자 대신 가격을 협상에 1대 n�
 <img width="935" alt="image" src="imgs/demo.png">
 
 - 배포 기간 : 23.07.19 21:00 ~ 23.08.18 16:00
+- 배포 형태 : 많은 user들이 이용하여 데이터를 수집하기 위해 NELLM과 대화할 수 있는 게임 형태로 배포했습니다.
+- 이용 방법 : `회원 등록`후 `판매 목록`에서 원하는 상품 페이지에 입장하여 NELLM과 대화할 수 있습니다.
+
+
+# 🌱Members
+
+|<img src='https://avatars.githubusercontent.com/u/110003154?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/60145579?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/54995090?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/75467530?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/65614582?v=4' height=100 width=100px></img>|
+| --- | --- | --- | --- | --- |
+| [김민혁](https://github.com/torchtorchkimtorch) | [김의진](https://github.com/KimuGenie) | [김성우](https://github.com/tjddn0402) | [오원택](https://github.com/dnjdsxor21) | [정세연](https://github.com/jjsyeon) |
+|Data|Model|Model|Service|Service|
+|- Data 수집 · 번역<br>- ChatGPT API 활용 데이터 생성<br>- 데이터 전처리 · EDA|- QLoRA · Vicuna 학습 구현<br>- 모델 출력 조절 Advisor 제작<br>- 데이터 검수|- LoRA fine-tuning<br>- 데이터 검수|- Web API, Model API 서빙 및 관리<br>- 사용자 데이터, 로그 분석|- 데이터 일괄 업로드 자동화<br>- 학습용 데이터 변환 및 데이터 파이프라인 관리|
 
 
 # Model
@@ -21,10 +32,13 @@ NELLM(낼름)은 중고거래에서 판매자 대신 가격을 협상에 1대 n�
 
 ## Key Features
 1. [QLoRA fine-tuning (chat_bot/scripts/transformers/finetune_peft.py)](chat_bot/scripts/transformers/finetune_peft.py)  
+<img src="imgs/model_architecture.png">
 fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 가용한 자원 (NVIDIA V100 VRAM 32GB) 내에서 학습이 가능하게 하였다.
 2. [Advisor (./chat_bot/neural_chat/advisor.py)](./chat_bot/neural_chat/advisor.py)  
+<img src="imgs/advisor.png">
 가격을 regex로 추적하며 [rule(./chat_bot/neural_chat/craigslist/price_parser.py)을 기반](./chat_bot/neural_chat/craigslist/price_parser.py)으로 NELLM의 발화를 일정부분 강제하여 control하였습니다.
 3. [Vicuna Training](https://lmsys.org/blog/2023-03-30-vicuna/)  
+<img src="imgs/vicuna.png">
 [판매자의 발화만 학습하도록 데이터셋을 구축(./chat_bot/neural_chat/craigslist/e2e_dataset.py)](./chat_bot/neural_chat/craigslist/e2e_dataset.py)하여 모델이 구매자의 발화까지 혼동하여 함께 생성하는 현상을 방지했습니다.
 
 # Dataset
@@ -37,14 +51,14 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 ## Data Schema
 ```json
 {
-    "title":"{제목}",
-    "description":"{상품 정보}",
-    "price": 상품 가격(int),
-    "result":"ACCEPT 또는 DENY",
+    "title":"{제목}",               // str
+    "description":"{상품 정보}",    // str
+    "price": "상품 가격",           // int
+    "result":"ACCEPT 또는 DENY",    // str
     "events":[
         {"role":"구매자","message":"안녕하세요! 물건 팔렸나요?"},
         {"role":"판매자", "message":"아직 안팔렸습니다~"},
-        ...
+        //...
         {"role":"구매자","message":"##<{최종 제안 가격}>##"},
         {"role":"판매자", "message":"##<{수락/거절}>##"},
     ],
@@ -66,7 +80,7 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 ![ChatGPT](https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white)
 
 기존 영어 데이터셋인 [CraigslistBargain](https://github.com/stanfordnlp/cocoa)를 번역하여 사용했으나, 단순한 대화패턴, 번역체, 문화 차이에 따른 부적절한 내용 등의 한계를 극복하고자 ChatGPT API를 이용해 데이터를 직접 생성했다.
-### Prompt Rules
+### [Prompt Rules](./dataprincess.ipynb)
 1. 국내 중고거래 플랫폼에서 사용되는 용어 반영 (ex. 네고, 쿨거래 등)
 2. 대화 패턴 다양화 
     - 구매자의 페르소나 부여
@@ -86,14 +100,7 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 - Backend : FastAPI
 - App server : GCP (Google Cloud Platform)
 - Model Server : Upstage에서 제공받은 V100 서버
-- DB : 채팅 데이터는 App Server의 SQLite(Relational DB)에 저장되며, 24시간마다 한 번씩 Json 형태의 data를 가져오기 위해 MongoDB로 옮겨진다.
-
-
-# 🌱Members
-
-|<img src='https://avatars.githubusercontent.com/u/110003154?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/60145579?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/54995090?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/75467530?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/65614582?v=4' height=100 width=100px></img>|
-| --- | --- | --- | --- | --- |
-| [김민혁](https://github.com/torchtorchkimtorch) | [김의진](https://github.com/KimuGenie) | [김성우](https://github.com/tjddn0402) | [오원택](https://github.com/dnjdsxor21) | [정세연](https://github.com/jjsyeon) |
+- DB : 채팅 데이터는 App Server의 SQLite(Relational DB)에 저장되며, 24시간마다 한 번씩 json 형태의 data를 가져오기 위해 MongoDB로 옮겨진다.
 
 
 # Environment
@@ -116,9 +123,9 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 # How to run
 
 ## Model train & evaluation
-1. LoRA fine-tuning
+### 1. LoRA fine-tuning
 ```bash
-# python chat_bot/scripts/transformers/finetune_peft.py --help
+> python chat_bot/scripts/transformers/finetune_peft.py --help
 
 usage: finetune_peft.py [-h] [--train-dataset-names TRAIN_DATASET_NAMES [TRAIN_DATASET_NAMES ...]] [--model-name-or-checkpoint MODEL_NAME_OR_CHECKPOINT] [--dataset-type DATASET_TYPE] [--conv-template CONV_TEMPLATE] [--max-length MAX_LENGTH] [--epoch EPOCH]
                         [--max-steps MAX_STEPS] [--batch-size BATCH_SIZE] [--grad-accum GRAD_ACCUM] [--lr LR] [--output-dir OUTPUT_DIR] [--run-name RUN_NAME] [--peft-type PEFT_TYPE] [--lora-r LORA_R] [--lora-alpha LORA_ALPHA] [--lora-dropout LORA_DROPOUT]
@@ -145,15 +152,15 @@ optional arguments:
   --lora-dropout LORA_DROPOUT
   --n_virtual_token N_VIRTUAL_TOKEN
 ```
-실행
+- 실행 예시
 ```bash
 python chat_bot/scripts/transformers/finetune_peft.py \
     --train-dataset-names ggul-tiger/{dataset_name_1} ggul-tiger/{dataset_name_2}
 ```
 
-2. evaluation
+### 2. evaluation
 ```bash
-# python chat_bot/scripts/eval/e2e_eval.py --help
+> python chat_bot/scripts/eval/e2e_eval.py --help
 
 usage: e2e_eval.py [-h] --data-path DATA_PATH --model_checkpoint_path MODEL_CHECKPOINT_PATH [--conv-template-name CONV_TEMPLATE_NAME] [--num-rollouts NUM_ROLLOUTS]
 
@@ -164,7 +171,7 @@ optional arguments:
   --conv-template-name CONV_TEMPLATE_NAME
   --num-rollouts NUM_ROLLOUTS
 ```
-실행
+- 실행 예시
 ```bash
 python chat_bot/scripts/eval/e2e_eval.py \
     --data-path ggul-tiger/{dataset_name} \
@@ -172,12 +179,12 @@ python chat_bot/scripts/eval/e2e_eval.py \
 ```
 
 ## Web server
-1. WebAPI: NELLM의 프론트 & 백엔드를 구성하는 API
+### 1. WebAPI: NELLM의 프론트 & 백엔드를 구성하는 API
 ```bash
 cd app
 uvicorn main:app --port 80
 ```
-2. ModelAPI: 구매자의 채팅을 입력 받아 적절한 대답을 출력하는 API
+### 2. ModelAPI: 구매자의 채팅을 입력 받아 적절한 대답을 출력하는 API
 ```bash
 cd modelapi
 uvicorn main:app --port 30007       
