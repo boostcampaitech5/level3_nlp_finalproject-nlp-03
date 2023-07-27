@@ -29,8 +29,10 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 
 # Dataset
 
-🤗[NELLM 데이터셋 v1](https://huggingface.co/datasets/ggul-tiger/negobot_cleaned_361): ChatGPT로 자체 생성한 데이터셋  
-🤗[NELLM 데이터셋 v2](https://huggingface.co/datasets/ggul-tiger/negobot_userdata): + 앱 배포 후 사용자로부터 얻어 정제한 데이터셋  
+🤗[NELLM 데이터셋 v1](https://huggingface.co/datasets/ggul-tiger/negobot_cleaned_100): ChatGPT로 자체 생성한 데이터셋  
+🤗[NELLM 데이터셋 v2](https://huggingface.co/datasets/ggul-tiger/negobot_cleaned_361): v1 + 제목, 상품 설명, 가격 크롤링 후 채팅만 ChatGPT로 생성한 데이터셋  
+🤗[NELLM 데이터셋 v3](https://huggingface.co/datasets/ggul-tiger/negobot_361_weakcase_injected): v2에 유저 로그에서 특이 케이스(예: 무료 나눔 해주세요.)에 대응하는 발화가 추가된 데이터셋  
+🤗[유저 데이터셋](https://huggingface.co/datasets/ggul-tiger/negobot_userdata): 앱 배포 후 사용자로부터 얻어 정제한 데이터셋  
 
 ## Data Schema
 ```json
