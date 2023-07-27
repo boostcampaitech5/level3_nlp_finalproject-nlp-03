@@ -2,7 +2,7 @@
 
 # :honey_pot:🐯:NELLM(낼름): NEgotiation Large Language Model
 [![Static Badge](https://img.shields.io/badge/-Notion-white?logo=Notion&logoColor=black)](https://www.notion.so/boostcampait/NLP-03-NELLM-54aea5571d5f488f96cf8668fe5a8b80?pvs=4)
-[![Static Badge](https://img.shields.io/badge/-Youtube-red?logo=Youtube)](https://www.youtube.com)
+[![Static Badge](https://img.shields.io/badge/-Youtube-red?logo=Youtube)](https://www.youtube.com/watch?v=66qdusEwjZw)
 [![Static Badge](https://img.shields.io/badge/%F0%9F%A4%97-Huggingface-yellow)](https://huggingface.co/ggul-tiger)
 
 NELLM(낼름)은 중고거래에서 판매자 대신 가격을 협상에 1대 n으로 대응하는 챗봇 어플리케이션입니다.
