@@ -1,6 +1,6 @@
 [<img width="600" alt="image" src="https://github.com/boostcampaitech5/level3_nlp_finalproject-nlp-03/assets/75467530/37831d49-2e42-46ca-bcae-6f9caeaa934b">](https://boostcamp.connect.or.kr/)
 
-# :honey_pot:NELLM(낼름): NEgotiation Large Language Model
+# :honey_pot:🐯:NELLM(낼름): NEgotiation Large Language Model
 [![Static Badge](https://img.shields.io/badge/-Notion-white?logo=Notion&logoColor=black)](https://www.notion.so/boostcampait/NLP-03-NELLM-54aea5571d5f488f96cf8668fe5a8b80?pvs=4)
 [![Static Badge](https://img.shields.io/badge/-Youtube-red?logo=Youtube)](https://www.youtube.com)
 [![Static Badge](https://img.shields.io/badge/%F0%9F%A4%97-Huggingface-yellow)](https://huggingface.co/ggul-tiger)
@@ -92,7 +92,6 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 |<img src='https://avatars.githubusercontent.com/u/110003154?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/60145579?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/54995090?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/75467530?v=4' height=100 width=100px></img>|<img src='https://avatars.githubusercontent.com/u/65614582?v=4' height=100 width=100px></img>|
 | --- | --- | --- | --- | --- |
 | [김민혁](https://github.com/torchtorchkimtorch) | [김의진](https://github.com/KimuGenie) | [김성우](https://github.com/tjddn0402) | [오원택](https://github.com/dnjdsxor21) | [정세연](https://github.com/jjsyeon) |
-| Data | Model | Model | Service | Service |
 
 
 # Environment
@@ -110,17 +109,60 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
     cd level3_nlp_finalproject-nlp-03
     poetry install
     ```
+- [Web server 환경 설정](./app/README.md)
 
 # How to run
 
 ## Model train & evaluation
 1. LoRA fine-tuning
 ```bash
+# python chat_bot/scripts/transformers/finetune_peft.py --help
+
+usage: finetune_peft.py [-h] [--train-dataset-names TRAIN_DATASET_NAMES [TRAIN_DATASET_NAMES ...]] [--model-name-or-checkpoint MODEL_NAME_OR_CHECKPOINT] [--dataset-type DATASET_TYPE] [--conv-template CONV_TEMPLATE] [--max-length MAX_LENGTH] [--epoch EPOCH]
+                        [--max-steps MAX_STEPS] [--batch-size BATCH_SIZE] [--grad-accum GRAD_ACCUM] [--lr LR] [--output-dir OUTPUT_DIR] [--run-name RUN_NAME] [--peft-type PEFT_TYPE] [--lora-r LORA_R] [--lora-alpha LORA_ALPHA] [--lora-dropout LORA_DROPOUT]
+                        [--n_virtual_token N_VIRTUAL_TOKEN]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --train-dataset-names TRAIN_DATASET_NAMES [TRAIN_DATASET_NAMES ...]
+                        list of dataset names. use as --train-dataset-names ds1 ds2
+  --model-name-or-checkpoint MODEL_NAME_OR_CHECKPOINT
+  --dataset-type DATASET_TYPE
+  --conv-template CONV_TEMPLATE
+  --max-length MAX_LENGTH
+  --epoch EPOCH
+  --max-steps MAX_STEPS
+  --batch-size BATCH_SIZE
+  --grad-accum GRAD_ACCUM
+  --lr LR
+  --output-dir OUTPUT_DIR
+  --run-name RUN_NAME
+  --peft-type PEFT_TYPE
+  --lora-r LORA_R
+  --lora-alpha LORA_ALPHA
+  --lora-dropout LORA_DROPOUT
+  --n_virtual_token N_VIRTUAL_TOKEN
+```
+실행
+```bash
 python chat_bot/scripts/transformers/finetune_peft.py \
     --train-dataset-names ggul-tiger/{dataset_name_1} ggul-tiger/{dataset_name_2}
 ```
 
 2. evaluation
+```bash
+# python chat_bot/scripts/eval/e2e_eval.py --help
+
+usage: e2e_eval.py [-h] --data-path DATA_PATH --model_checkpoint_path MODEL_CHECKPOINT_PATH [--conv-template-name CONV_TEMPLATE_NAME] [--num-rollouts NUM_ROLLOUTS]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --data-path DATA_PATH
+  --model_checkpoint_path MODEL_CHECKPOINT_PATH
+  --conv-template-name CONV_TEMPLATE_NAME
+  --num-rollouts NUM_ROLLOUTS
+```
+실행
 ```bash
 python chat_bot/scripts/eval/e2e_eval.py \
     --data-path ggul-tiger/{dataset_name} \
