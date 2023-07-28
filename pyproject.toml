@@ -6,11 +6,7 @@ authors = ["KimuGenie <baby11686@naver.com>","wontaek <dnjdsxor21@gmail.com>", "
 readme = "README.md"
 
 [tool.poetry.dependencies]
-<<<<<<< HEAD
-python = "^3.9"
-=======
 python = ">=3.9,<3.13"
->>>>>>> fa25e5e1615684a3431fc396433dd9efb766605d
 sqlalchemy = "^2.0.18"
 fastapi = "^0.100.0"
 uvicorn = "^0.22.0"
