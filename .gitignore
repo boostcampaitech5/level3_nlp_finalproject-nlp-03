@@ -20,4 +20,3 @@ wandb/
 migrations/
 *.lock
 !sample_data.json
-key/
