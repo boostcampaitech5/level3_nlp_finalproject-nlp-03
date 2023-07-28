@@ -31,15 +31,17 @@ NELLM(낼름)은 중고거래에서 판매자 대신 가격을 협상에 1대 n�
 🤗[NELLM(낼름)](https://huggingface.co/ggul-tiger)은 [KULLM(구름)](https://github.com/nlpai-lab/KULLM)을 바탕으로 QLoRA fine-tuning된 모델입니다.
 
 ## Key Features
-1. [QLoRA fine-tuning](./chat_bot/scripts/train.py)  
+### 1. [QLoRA fine-tuning](./chat_bot/scripts/train.py)  
 <img src="imgs/model_architecture.png">
 fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 가용한 자원 (NVIDIA V100 VRAM 32GB) 내에서 학습이 가능하게 하였다.  
-2. [Advisor](./chat_bot/neural_chat/advisor.py)  
+
+### 2. [Advisor](./chat_bot/neural_chat/advisor.py)  
 <img src="imgs/advisor.png">
-가격을 regex로 추적하며 [rule을 기반](./chat_bot/neural_chat/price_parser.py)으로 NELLM의 발화를 일정부분 강제하여 control하였습니다.
-3. [Vicuna Training](https://lmsys.org/blog/2023-03-30-vicuna/)  
+가격을 regex로 추적하며 [rule을 기반](chat_bot/neural_chat/price_parser.py) 으로 NELLM의 발화를 일정부분 강제하여 control하였습니다.
+
+### 3. [Vicuna Training](https://lmsys.org/blog/2023-03-30-vicuna/)  
 <img src="imgs/vicuna.png">
-[판매자의 발화만 학습하도록 데이터셋을 구축(./chat_bot/neural_chat/dataset/e2e_dataset.py)](./chat_bot/neural_chat/dataset/e2e_dataset.py)하여 모델이 구매자의 발화까지 혼동하여 함께 생성하는 현상을 방지했습니다.
+- [e2e_dataset.py](chat_bot/neural_chat/dataset/e2e_dataset.py) : 판매자의 발화만 학습하도록 데이터셋을 구축하여 모델이 구매자의 발화까지 혼동하여 함께 생성하는 현상을 방지했습니다.
 
 # Dataset
 
@@ -80,7 +82,7 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 ![ChatGPT](https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white)
 
 기존 영어 데이터셋인 [CraigslistBargain](https://github.com/stanfordnlp/cocoa)를 번역하여 사용했으나, 단순한 대화패턴, 번역체, 문화 차이에 따른 부적절한 내용 등의 한계를 극복하고자 ChatGPT API를 이용해 데이터를 직접 생성했다.
-### [Prompt Rules](./dataprincess.ipynb)
+### [Prompt Rules](./data-processing/data-creator-ChatGPT.ipynb)
 1. 국내 중고거래 플랫폼에서 사용되는 용어 반영 (ex. 네고, 쿨거래 등)
 2. 대화 패턴 다양화 
     - 구매자의 페르소나 부여
