@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block subtitle %}
+<h2 class="List">유저랭킹</h2>
+{% endblock %} 
+
+{% block content %}
+
+<div class="ranking">
+  {% for user in users %}
+  <div class="user">
+    <h3> {{loop.index}}위: {{user.username}} </h3>
+    <p>누적 네고율 +{{ user.point }}%</p>
+  </div>
+  
+  {% endfor %}
+  <button class="button" type="button" onclick="ViewEverything()">전체 보기</button>
+</div>
+
+
+<script>function ViewEverything() {
+  window.location.href = '/ranking?all=true';
+}</script>
+
+{% endblock %}  
+

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block subtitle %}
+<h2 class="List">회원등록 후에 이용해 주세요!</h2>
+{% endblock %} 
+
+{% block content %}
+<div class="signup">
+  <form method="POST" action="/signup" autocomplete="off">
+    <div>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" placeholder="닉네임">
+    </div>
+    <div>
+        <input type="submit" value="Sign Up">
+    </div>
+  </form>
+
+</div>
+{% if messages %}<script>alert("{{ messages[0] }}");</script>{% endif %}
+
+{% endblock %}

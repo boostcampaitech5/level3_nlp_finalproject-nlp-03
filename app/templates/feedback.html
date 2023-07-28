@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="feedback">
+    <div class="center-container">
+        <img src="static/images/ggul-tiger.jpeg" alt="ggul-tiger">
+        <h2>서비스에 대한 Feedback을 남겨주세요!</h2>
+        <form id="feedbackForm" method="POST" action="/feedback" autocomplete="off">
+            <div>
+                <textarea id='feedback' name="feedback" cols="10" rows="5"></textarea>
+                <!--<input type="text" id="feedback" name="feedback" placeholder="내용">-->
+            </div>
+            <div class="button">
+                <input type="submit" value="제출">
+            </div>
+        </form>
+    </div>
+</div>
+
+    <script>
+        const feedbackForm = document.getElementById("feedbackForm");
+
+        feedbackForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            // '감사합니다' 팝업 표시
+            alert("Thank you!");
+            
+            feedbackForm.submit();
+        });
+        document.getElementById("feedbackForm").addEventListener("keydown", function(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+        }
+    });
+    </script>
+{% endblock %}
