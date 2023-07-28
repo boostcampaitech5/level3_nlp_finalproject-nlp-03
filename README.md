@@ -37,10 +37,12 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 
 ### 2. [Advisor](./chat_bot/neural_chat/advisor.py)  
 <img src="imgs/advisor.png">
+
 가격을 regex로 추적하며 [rule을 기반](chat_bot/neural_chat/price_parser.py) 으로 NELLM의 발화를 일정부분 강제하여 control하였습니다.
 
 ### 3. [Vicuna Training](https://lmsys.org/blog/2023-03-30-vicuna/)  
 <img src="imgs/vicuna.png">
+
 - [e2e_dataset.py](chat_bot/neural_chat/dataset/e2e_dataset.py) : 판매자의 발화만 학습하도록 데이터셋을 구축하여 모델이 구매자의 발화까지 혼동하여 함께 생성하는 현상을 방지했습니다.
 
 # Dataset
