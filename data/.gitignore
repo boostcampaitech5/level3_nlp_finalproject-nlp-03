@@ -2,3 +2,4 @@
 *.pkl
 *.pt
 *.txt
+!sample_data.json

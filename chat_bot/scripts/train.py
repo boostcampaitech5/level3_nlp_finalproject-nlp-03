@@ -20,7 +20,7 @@ from peft import (
     PeftModelForCausalLM,
 )
 from datasets import load_dataset, concatenate_datasets
-from chat_bot.neural_chat.craigslist.e2e_dataset import (
+from chat_bot.neural_chat.dataset.e2e_dataset import (
     SimpleDialogDataset,
     VicunaDialogDataset,
 )

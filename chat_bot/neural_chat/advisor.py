@@ -1,5 +1,5 @@
 from .conversation import Conversation
-from .craigslist.price_parser import parse_wanted_price, parse_prices
+from .price_parser import parse_wanted_price, parse_prices
 import re
 import random
 
