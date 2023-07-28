@@ -4,8 +4,9 @@ from transformers import PreTrainedTokenizer, AutoTokenizer
 from dataclasses import dataclass, field
 import re
 import sys
+
 sys.path.append("./")
-from chat_bot.neural_chat.craigslist.price_parser import parse_prices, num2won
+from chat_bot.neural_chat.price_parser import parse_prices, num2won
 
 
 def get_conv_template(template_name: str):
@@ -44,6 +45,21 @@ def get_v2_conv_template():
     )
 
 
+def get_v2_hangeul_conv_template():
+    """가격이 한글로 변환된 End to End 모델 훈련을 위한 버전 2 탬플릿입니다."""
+    return Conversation(
+        system="당신은 중고거래 판매자입니다. 판매자는 상품 가격과 구매자와 판매자가 제시한 가격을 참고해서 적절한 근거와 함께 합의 가격을 제시합니다.",
+        roles=["구매자", "판매자"],
+        scenario={},
+        scenario_key_mapping={"title": "제목", "description": "상품 설명", "price": "상품 가격"},
+        scenario_format="colon",
+        messages=[],
+        sep="\n",
+        sep2="<|endoftext|>",
+        hangeul_price=True,
+    )
+
+
 def get_price_weak_conv_template():
     """가격과 관련된 weak case 훈련을 위한 탬플릿입니다."""
     return Conversation(
@@ -75,6 +91,7 @@ def get_simple_weak_conv_template():
 CONV_TEMPLATES = {
     "default": get_default_conv_template,
     "v2": get_v2_conv_template,
+    "v2-hangeul": get_v2_hangeul_conv_template,
     "price_weak": get_price_weak_conv_template,
     "simple_weak": get_simple_weak_conv_template,
 }
@@ -138,19 +155,19 @@ class Conversation:
         if self.scenario_format == "bracket":
             info_list = [
                 f"[{v}] {num2won(self.scenario[k])}"
-                if k == "price" and self.hangeul_price else
-                f"[{v}] {self.scenario[k]}원"
-                if k == "price" else
-                f"[{v}] {self.scenario[k]}"
+                if k == "price" and self.hangeul_price
+                else f"[{v}] {self.scenario[k]}원"
+                if k == "price"
+                else f"[{v}] {self.scenario[k]}"
                 for k, v in self.scenario_key_mapping.items()
             ]
         elif self.scenario_format == "colon":
             info_list = [
                 f"{v}: {num2won(self.scenario[k])}"
-                if k == "price" and self.hangeul_price else
-                f"{v}: {self.scenario[k]}원"
-                if k == "price" else
-                f"{v}: {self.scenario[k]}"
+                if k == "price" and self.hangeul_price
+                else f"{v}: {self.scenario[k]}원"
+                if k == "price"
+                else f"{v}: {self.scenario[k]}"
                 for k, v in self.scenario_key_mapping.items()
             ]
         return self.sep.join(info_list) + self.sep + self.sep
@@ -160,14 +177,22 @@ class Conversation:
         if self.hangeul_price:
             try:
                 if role == "구매자" and re.match(r"##<\d+>##", message):
-                        message="##<"+num2won(int(message[3:-3]))+">##"
+                    message = "##<" + num2won(int(message[3:-3])) + ">##"
                 else:
-                    matched_prices, price_matches = parse_prices(message, self.desired_price[role], 0., 999999999)
-                    for price, match in zip(reversed(matched_prices),reversed(price_matches)):
-                        message=message[:match.start()]+num2won(price)+message[match.end():]
+                    matched_prices, price_matches = parse_prices(
+                        message, self.desired_price[role], 0.0, 999999999
+                    )
+                    for price, match in zip(
+                        reversed(matched_prices), reversed(price_matches)
+                    ):
+                        message = (
+                            message[: match.start()]
+                            + num2won(price)
+                            + message[match.end() :]
+                        )
             except Exception as e:
                 print(e)
-                
+
         self.messages.append([role, message])
 
     def update_last_message(self, message: str):
@@ -179,7 +204,7 @@ class Conversation:
         self.messages = []
         self.scenario = {k: formatted_dict[k] for k in self.scenario_key_mapping.keys()}
         self.desired_price["판매자"] = self.scenario["price"]
-        self.desired_price["구매자"] = self.scenario["price"]*0.8
+        self.desired_price["구매자"] = self.scenario["price"] * 0.8
         for i, ev in enumerate(formatted_dict["events"]):
             assert self.roles[i % 2] == ev["role"], "구매자, 판매자 순서로 된 데이터를 입력해주세요."
             self.append_message(ev["role"], ev["message"])

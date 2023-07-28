@@ -1,5 +1,6 @@
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+from dataclasses import dataclass
 
 # 10000보다 작은 수까지 match
 UNDER_10K = re.compile(
@@ -44,7 +45,6 @@ NOT_MONEY_UNITS = (
 )
 # fmt :on
 ENG_GREEK_LETTERS = re.compile(r"[a-zA-Z\u0370-\u03FF].*$") # 영어 알파벳 & 그리스문자 (모든 단위 배제)
-SEARCH_DISCOUNT_WORD_UPTO=10
 
 # 비율을 나타내는 표현
 PERCENTAGE = re.compile(r"\d{1,3}\s*(퍼(센트)?|%)") # 10프로 <- 아이패드 10프로 가능하므로 제외함.
@@ -53,66 +53,17 @@ FRACTIONAL_OVER = re.compile(r"(?=[\d일이삼사오육칠팔구십])(\d+|[일�
 FRACTIONAL = re.compile(r"\d+\s*/\s*\d+")
 HALF = re.compile(r"(절반|반값(?!\s*택배))")
 
-def match_ratio(text:str)->Tuple[List[float], List[re.Match]]:
-    """1 턴의 발화를 입력받아서 비율을 나타내는 단어를 0-1 사이 실수로 변환"""
-    ratios, matches=[], []
-
-    for m in re.finditer(PERCENTAGE, text):
-        ratio=float(re.match(r'\d+',m.group()))/100
-        if ratio<=1.0:
-            matches.append(m)
-            ratios.append(ratio)
-
-    n2i = {n:i for i, n in enumerate("일이삼사오육칠팔구", 1)}
-    for m in re.finditer(HALPUNRI, text):
-        ratio=0
-        if '할' in m.group():
-            n,m=re.split(r'\s*할\s*',m.group())
-            if n in n2i.keys():
-                ratio += float(n2i[n])/10
-            else:
-                ratio += float(n.strip())/10
-        if '푼' in m.group():
-            n,m=re.split(r'\s*푼\s*',m.group())
-            if n in n2i.keys():
-                ratio += float(n2i[n])/100
-            else:
-                ratio += float(n.strip())/100
-        if '리' in m.group():
-            n,m=re.split(r'\s*리\s*',m.group())
-            if n in n2i.keys():
-                ratio += float(n2i[n])/1000
-            else:
-                ratio += float(n.strip())/1000
-        if ratio<=1.0:
-            matches.append(m)
-            ratios.append(ratio)
-
-    for m in re.finditer(FRACTIONAL_OVER, text):
-        denom, numer = re.split(r"\s*분(의|에)\s*", m.group())
-        denom = str2int_under10k(denom)
-        numer = str2int_under10k(numer)
-        ratio = float(numer)/float(denom)
-        if ratio<=1.0:
-            matches.append(m)
-            ratios.append(ratio)
-
-    for m in re.finditer(FRACTIONAL, text):
-        numer, denom = re.split(r"\s*/\s*", m.group())
-        ratio = float(numer)/float(denom)
-        if ratio<=1.0:
-            matches.append(m)
-            ratios.append(ratio)
-
-    for m in re.finditer(HALF, text):
-        matches.append(m)
-        ratios.append(0.5)
-    
-    return ratios, matches
-
 # 할인을 암시하는 표현
 DISCOUNT = re.compile(r"(에누리|에눌|할인|세일|네고|깎|깍|빼)")
-CATCH_DISCOUNT=True
+N2I = {n:i for i, n in enumerate("영일이삼사오육칠팔구")}
+
+@dataclass
+class Ratio:
+    val: float
+    match: re.Match
+    discount: bool=False # 할인된 비율인지의 여부
+
+
 
 def parse_wanted_price(
     role: str, text: str, seller_wanted_price: int, buyer_wanted_price: int
@@ -123,13 +74,16 @@ def parse_wanted_price(
     ex1) 구매자: 만원은 너무 비싼데 9천원에 팔아주세요. -> 9000
     ex2) 구매자: 안녕하세요. 7월이라 덥네요. -> -1
     """
+    ratios=parse_ratios(text)
+    discounting_ratios = list(filter(lambda r: r.discount or r.val==0.5, ratios))
     if role == "구매자":
         if re.match(r"##<\d+>##", text):
             return int(text[3:-3])
         price_list, _ = parse_prices(text, seller_wanted_price, 0.3, 2)
-        if not price_list:
-            return -1
-        if len(price_list) == 1 and any_string_in(["비싸", "비싼", "높", "부담"], text):
+        if len(price_list)==0 or \
+            (len(price_list) == 1 and any_string_in(["비싸", "비싼", "높", "부담"], text)):
+            if len(discounting_ratios)>0:
+                return (1-max(discounting_ratios, key=lambda r: r.val))*seller_wanted_price
             return -1
         min_price = min(price_list)
         if min_price > seller_wanted_price:
@@ -137,9 +91,8 @@ def parse_wanted_price(
         return min_price
     if role == "판매자":
         price_list, _ = parse_prices(text, buyer_wanted_price, 0.3, 2)
-        if not price_list:
-            return -1
-        if len(price_list) == 1 and any_string_in(["죄송", "낮"], text):
+        if len(price_list)==0 or\
+            (len(price_list) == 1 and any_string_in(["죄송", "낮"], text)):
             return -1
         max_price = max(price_list)
         if max_price < buyer_wanted_price:
@@ -148,7 +101,11 @@ def parse_wanted_price(
 
 
 def parse_prices(
-    text: str, ref_price: int, bottom_ratio: float, ceil_ratio: float
+    text: str,
+    ref_price: int = 10000,
+    bottom_ratio: float = 0.0,
+    ceil_ratio: float = 99999999.0,
+    discount_ahead: Optional[int] = 10
 ) -> Tuple[List[int], List[re.Match]]:
     """
     하나의 message에서 금액으로 추정되는 숫자의 리스트를 추출합니다.
@@ -195,7 +152,7 @@ def parse_prices(
             # 범위를 벗어나는 경우
             if re.search(r'[원냥₩]', match.group()):
                 # price가 하한선보다 작거나, 상한선보다 크더라도 가격을 나타내는 [원, ₩] 가 붙어있으면 추가
-                if CATCH_DISCOUNT and bool(re.search(DISCOUNT, text[match.end():match.end()+SEARCH_DISCOUNT_WORD_UPTO])):
+                if discount_ahead and bool(re.search(DISCOUNT, text[match.end():match.end()+discount_ahead])):
                     # 아직은 edge case 너무 많음
                     final_prices.append(ref_price-price)
                     final_matches.append(match)
@@ -208,6 +165,70 @@ def parse_prices(
             final_matches.append(match)
 
     return final_prices, final_matches
+
+
+def parse_ratios(text: str, discount_ahead:Optional[int]=10)->List[Ratio]:
+    """1 턴의 발화를 입력받아서 비율을 나타내는 단어를 0-1 사이 실수로 변환"""
+    matched_ratios: List[Ratio] = []
+
+    for m in re.finditer(PERCENTAGE, text): # 퍼(센트), %
+        ratio=float(re.match(r'\d+',m.group()).group())/100
+        matched_ratios.append(Ratio(val=ratio,match=m))
+
+    for m in re.finditer(HALPUNRI, text): # 할푼리
+        ratio=0
+        m_str = m.group()
+        if '할' in m_str:
+            n,m_str=re.split(r'\s*할\s*',m_str)
+            if n in N2I.keys():
+                ratio += float(N2I[n])/10
+            else:
+                ratio += float(n.strip())/10
+        if '푼' in m_str:
+            n,m_str=re.split(r'\s*푼\s*',m_str)
+            if n in N2I.keys():
+                ratio += float(N2I[n])/100
+            else:
+                ratio += float(n.strip())/100
+        if '리' in m_str:
+            n,m_str=re.split(r'\s*리\s*',m_str)
+            if n in N2I.keys():
+                ratio += float(N2I[n])/1000
+            else:
+                ratio += float(n.strip())/1000
+        matched_ratios.append(Ratio(val=ratio,match=m))
+
+    for m in re.finditer(FRACTIONAL_OVER, text): # n 분의 m
+        denom, numer = re.split(r"\s*분(의|에)\s*", m.group())
+        denom = str2int_under10k(denom)
+        numer = str2int_under10k(numer)
+        try:
+            ratio = float(numer)/float(denom)
+            matched_ratios.append(Ratio(val=ratio,match=m))
+        except ZeroDivisionError:
+            pass
+
+    for m in re.finditer(FRACTIONAL, text): # 분수
+        numer, denom = re.split(r"\s*/\s*", m.group())
+        try:
+            ratio = float(numer)/float(denom)
+            matched_ratios.append(Ratio(val=ratio,match=m))
+        except ZeroDivisionError:
+            pass
+
+    for m in re.finditer(HALF, text): # 반값
+        matched_ratios.append(Ratio(val=0.5,match=m))
+
+    matched_ratios.sort(key=lambda ratio: ratio.match.span())
+    matched_ratios = list(filter(lambda mr: len(mr.match.group())>0, matched_ratios)) # 길이 0인 것 제외
+    matched_ratios = list(filter(lambda mr: mr.val<=1.0, matched_ratios)) # 비율 값이 0과 1 사이인 경우만 match
+
+    if discount_ahead:
+        for i in range(len(matched_ratios)):
+            if bool(re.search(DISCOUNT, text[matched_ratios[i].match.end():min(matched_ratios[i].match.end()+discount_ahead, len(text))])):
+                # 비율 표현 이후 할인 암시표현 등장하는 경우
+                matched_ratios[i].discount = True
+    return matched_ratios
 
 
 def price_to_int(price: str) -> int:
@@ -309,14 +330,11 @@ def num2won(num:int)->str:
                     continue
                 if m > 0:
                     res.append(tens[m])
-                if a > 1 or m == 0:
+                if a >= 1 or m == 0:
                     res.append(str(a))
             result.append(''.join(reversed(res)) + units[i])
         i += 1
     return ''.join(reversed(result))+"원"
-
-def won2num(won: str):
-    return
 
 if __name__ == "__main__":
     import random
