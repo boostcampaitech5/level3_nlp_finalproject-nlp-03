@@ -177,9 +177,21 @@ async def chatting(request: Request, product_id: int, name: str = Query(None), p
     logger.info(f'{request.method} "{request.url.path}" - {request.client}')
     messages = []
     form_data = await request.form()
+    
+    if "score" in form_data.keys():
+        score = form_data["score"]
+        current_user = db.query(User).filter(User.username==name).first()
+        chat = db.query(Chat).filter(and_(Chat.user == current_user, Chat.product_id==product_id)).order_by(Chat.created_at.desc()).first()
+        chat.score = score
+        db.commit()
+        if score == "예":
+            return RedirectResponse(url="/", status_code=303)
+        else:
+            return RedirectResponse(url="/feedback", status_code=303)
+
     if "text" in form_data.keys():
         input_text = form_data["text"]
-
+        
     try:
         product = db.query(Product).filter(Product.id == product_id).first()
         current_user = db.query(User).filter(User.username==name).first()
@@ -350,4 +362,5 @@ if __name__=='__main__':
     # logger = logging.getLogger("rocketry.task")
     # logger.addHandler(logging.StreamHandler())
 
-    asyncio.run(main())
+    # asyncio.run(main())
+    pass
