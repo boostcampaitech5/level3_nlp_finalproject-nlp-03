@@ -23,7 +23,7 @@ NELLM(낼름)은 중고거래에서 판매자 대신 가격을 협상에 1대 n�
 | --- | --- | --- | --- | --- |
 | [김민혁](https://github.com/torchtorchkimtorch) | [김의진](https://github.com/KimuGenie) | [김성우](https://github.com/tjddn0402) | [오원택](https://github.com/dnjdsxor21) | [정세연](https://github.com/jjsyeon) |
 |Data|Model|Model|Service|Service|
-|- Data 수집 · 번역<br>- ChatGPT API 활용 데이터 생성<br>- 데이터 전처리 · EDA|- QLoRA · Vicuna 학습 구현<br>- 모델 출력 조절 Advisor 제작<br>- 데이터 검수|- LoRA fine-tuning<br>- 데이터 검수|- Web API, Model API 서빙 및 관리<br>- 사용자 데이터, 로그 분석|- 데이터 일괄 업로드 자동화<br>- 학습용 데이터 변환 및 데이터 파이프라인 관리|
+|- Data 수집 · 번역<br>- ChatGPT API 활용 데이터 생성<br>- 데이터 전처리 · EDA|- QLoRA · Vicuna 학습 구현<br>- 모델 출력 조절 Advisor 제작<br>- 데이터 검수|- LoRA fine-tuning<br>- 데이터 검수|- Web API, Model API 서빙 및 관리<br>- 사용자 데이터, 로그 분석|- 데이터 파이프라인 자동화<br>- 사용자 데이터 분석 및 학습 데이터 제작|
 
 
 # Model
