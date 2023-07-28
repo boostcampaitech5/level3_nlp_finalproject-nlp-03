@@ -31,15 +31,15 @@ NELLM(낼름)은 중고거래에서 판매자 대신 가격을 협상에 1대 n�
 🤗[NELLM(낼름)](https://huggingface.co/ggul-tiger)은 [KULLM(구름)](https://github.com/nlpai-lab/KULLM)을 바탕으로 QLoRA fine-tuning된 모델입니다.
 
 ## Key Features
-1. [QLoRA fine-tuning (chat_bot/scripts/transformers/finetune_peft.py)](chat_bot/scripts/transformers/finetune_peft.py)  
+1. [QLoRA fine-tuning](./chat_bot/scripts/train.py)  
 <img src="imgs/model_architecture.png">
-fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 가용한 자원 (NVIDIA V100 VRAM 32GB) 내에서 학습이 가능하게 하였다.
-2. [Advisor (./chat_bot/neural_chat/advisor.py)](./chat_bot/neural_chat/advisor.py)  
+fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 가용한 자원 (NVIDIA V100 VRAM 32GB) 내에서 학습이 가능하게 하였다.  
+2. [Advisor](./chat_bot/neural_chat/advisor.py)  
 <img src="imgs/advisor.png">
-가격을 regex로 추적하며 [rule(./chat_bot/neural_chat/craigslist/price_parser.py)을 기반](./chat_bot/neural_chat/craigslist/price_parser.py)으로 NELLM의 발화를 일정부분 강제하여 control하였습니다.
+가격을 regex로 추적하며 [rule을 기반](./chat_bot/neural_chat/price_parser.py)으로 NELLM의 발화를 일정부분 강제하여 control하였습니다.
 3. [Vicuna Training](https://lmsys.org/blog/2023-03-30-vicuna/)  
 <img src="imgs/vicuna.png">
-[판매자의 발화만 학습하도록 데이터셋을 구축(./chat_bot/neural_chat/craigslist/e2e_dataset.py)](./chat_bot/neural_chat/craigslist/e2e_dataset.py)하여 모델이 구매자의 발화까지 혼동하여 함께 생성하는 현상을 방지했습니다.
+[판매자의 발화만 학습하도록 데이터셋을 구축(./chat_bot/neural_chat/dataset/e2e_dataset.py)](./chat_bot/neural_chat/dataset/e2e_dataset.py)하여 모델이 구매자의 발화까지 혼동하여 함께 생성하는 현상을 방지했습니다.
 
 # Dataset
 
@@ -125,9 +125,9 @@ fp16에서 int8로 quantizing한 후 LoRA(Low Rank Adaptation)을 적용하여 �
 ## Model train & evaluation
 ### 1. LoRA fine-tuning
 ```bash
-> python chat_bot/scripts/transformers/finetune_peft.py --help
+> python chat_bot/scripts/train.py --help
 
-usage: finetune_peft.py [-h] [--train-dataset-names TRAIN_DATASET_NAMES [TRAIN_DATASET_NAMES ...]] [--model-name-or-checkpoint MODEL_NAME_OR_CHECKPOINT] [--dataset-type DATASET_TYPE] [--conv-template CONV_TEMPLATE] [--max-length MAX_LENGTH] [--epoch EPOCH]
+usage: train.py [-h] [--train-dataset-names TRAIN_DATASET_NAMES [TRAIN_DATASET_NAMES ...]] [--model-name-or-checkpoint MODEL_NAME_OR_CHECKPOINT] [--dataset-type DATASET_TYPE] [--conv-template CONV_TEMPLATE] [--max-length MAX_LENGTH] [--epoch EPOCH]
                         [--max-steps MAX_STEPS] [--batch-size BATCH_SIZE] [--grad-accum GRAD_ACCUM] [--lr LR] [--output-dir OUTPUT_DIR] [--run-name RUN_NAME] [--peft-type PEFT_TYPE] [--lora-r LORA_R] [--lora-alpha LORA_ALPHA] [--lora-dropout LORA_DROPOUT]
                         [--n_virtual_token N_VIRTUAL_TOKEN]
 
@@ -154,15 +154,15 @@ optional arguments:
 ```
 - 실행 예시
 ```bash
-python chat_bot/scripts/transformers/finetune_peft.py \
+python chat_bot/scripts/train.py \
     --train-dataset-names ggul-tiger/{dataset_name_1} ggul-tiger/{dataset_name_2}
 ```
 
 ### 2. evaluation
 ```bash
-> python chat_bot/scripts/eval/e2e_eval.py --help
+> python chat_bot/scripts/eval.py --help
 
-usage: e2e_eval.py [-h] --data-path DATA_PATH --model_checkpoint_path MODEL_CHECKPOINT_PATH [--conv-template-name CONV_TEMPLATE_NAME] [--num-rollouts NUM_ROLLOUTS]
+usage: eval.py [-h] --data-path DATA_PATH --model_checkpoint_path MODEL_CHECKPOINT_PATH [--conv-template-name CONV_TEMPLATE_NAME] [--num-rollouts NUM_ROLLOUTS]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -173,8 +173,8 @@ optional arguments:
 ```
 - 실행 예시
 ```bash
-python chat_bot/scripts/eval/e2e_eval.py \
-    --data-path ggul-tiger/{dataset_name} \
+python chat_bot/scripts/eval.py \
+    --data-path ./data/sample_data.json \
     --model_checkpoint_path ggul-tiger/{model_name}
 ```
 
@@ -195,3 +195,12 @@ uvicorn main:app --port 30007
 - Lab, NLP &. AI, and Human-Inspired AI research. KULLM: Korea University Large Language Model Project. GitHub, 2023, https://github.com/nlpai-lab/kullm.
 - He, He, et al. “Decoupling Strategy and Generation in Negotiation Dialogues.” CoRR, vol. abs/1808.09637, 2018, http://arxiv.org/abs/1808.09637.
 - Ko, Hyunwoong, et al. A Technical Report for Polyglot-Ko: Open-Source Large-Scale Korean Language Models. 2023.
+- Dettmers, Tim, et al. "Qlora: Efficient finetuning of quantized llms." arXiv preprint arXiv:2305.14314 (2023).
+- @misc{zheng2023judging,
+      title={Judging LLM-as-a-judge with MT-Bench and Chatbot Arena},
+      author={Lianmin Zheng and Wei-Lin Chiang and Ying Sheng and Siyuan Zhuang and Zhanghao Wu and Yonghao Zhuang and Zi Lin and Zhuohan Li and Dacheng Li and Eric. P Xing and Hao Zhang and Joseph E. Gonzalez and Ion Stoica},
+      year={2023},
+      eprint={2306.05685},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
